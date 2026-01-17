@@ -14,6 +14,9 @@ app.use(express.json());
 // Database
 connectDB();
 
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+
 // Test route
 app.get('/', (req, res) => {
   res.json({ message: 'API is running' });
