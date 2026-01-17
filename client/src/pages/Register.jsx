@@ -9,6 +9,7 @@ const Register = () => {
     password: '',
     phone: '',
     address: '',
+    role: 'user',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +30,8 @@ const Register = () => {
       formData.email,
       formData.password,
       formData.phone,
-      formData.address
+      formData.address,
+      formData.role
     );
     if (result.success) {
       navigate('/');
@@ -94,6 +96,22 @@ const Register = () => {
             onChange={handleChange}
             style={{ width: '100%', padding: '8px', marginTop: '5px' }}
           />
+        </div>
+        <div style={{ marginBottom: '15px' }}>
+          <label>Role:</label>
+          <select
+            name="role"
+            value={formData.role}
+            onChange={handleChange}
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+          >
+            <option value="user">Customer</option>
+            <option value="admin">Admin</option>
+            <option value="partner">Delivery Partner</option>
+          </select>
+          <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '5px' }}>
+            Select your role (for demo purposes)
+          </small>
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         <button
