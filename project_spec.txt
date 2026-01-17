@@ -1,0 +1,117 @@
+Fish Cart - Project Overview
+1. PROJECT OVERVIEW
+Project Title: Fish Cart: Hyperlocal Seafood Delivery System Tech Stack: MERN (MongoDB, Express, React, Node.js) Type: Hyperlocal E-Commerce / On-Demand Logistics
+
+2. PROBLEM STATEMENT
+Wastage: Local vendors buy stock blindly, often leading to spoilage and financial loss if fish remains unsold.
+
+Inconvenience: Customers must wake up early and visit crowded wet markets to get fresh catch.
+
+Processing Hassle: Cleaning and cutting fish at home is messy and difficult for many households.
+
+Uncertainty: Customers never know what fish is available until they physically reach the market.
+
+3. PROPOSED SOLUTION
+Daily Fresh Inventory: A system where the Admin uploads stock only after procuring it, ensuring 100% availability.
+
+Scheduled Ordering: Customers place orders during a designated time period (e.g., evening to morning).
+
+Custom Preparation: Users can choose "Cleaned & Cut" or "Whole" directly on the website.
+
+Logistics Management: A dedicated view for Delivery Partners to manage routes efficiently.
+
+4. USER ROLES & PERMISSIONS
+A. User (Customer):
+
+Can Register and Login.
+
+Can View the "Daily Catch" (Live Inventory).
+
+Can Filter by Category (Sea Fish, Shellfish, River Fish).
+
+Can Select Preparation Preference (Whole vs. Cleaned & Cut).
+
+Can Place Orders & View Status (Pending -> Packed -> Out for Delivery).
+
+B. Admin (Organization):
+
+Can Login (Secure Dashboard).
+
+Can Manage Daily Stock (Add Fish, Set Price, Toggle Availability).
+
+Can Control "Shop Status" (Open/Close the ordering window).
+
+Can View "Packing Lists" (Categorized by Cutting Preference).
+
+Can Assign Orders to Delivery Partners.
+
+C. Delivery Partner:
+
+Can Login (Mobile-First View).
+
+Can View Assigned Deliveries (Map/Address).
+
+Can Update Status (Delivered, Payment Collected).
+
+5. DATABASE STRUCTURE (Schemas)
+A. User Schema:
+
+Name, Email, Password (Hashed), Phone, Address
+
+Role (String: 'user', 'admin', 'partner')
+
+B. Product Schema (Daily Inventory):
+
+FishName (String, e.g., "Sardine")
+
+Price (Number)
+
+StockQuantity (Number, e.g., 20kg)
+
+ImageURL (String)
+
+Status (String: 'Available', 'Sold Out')
+
+C. Order Schema:
+
+UserID (Link to User)
+
+Items (Array: { FishName, Qty, Preparation: 'Whole'/'Cleaned' })
+
+TotalAmount (Number)
+
+Status (String: 'Pending', 'Packed', 'Out for Delivery', 'Delivered')
+
+AssignedPartnerID (Link to Delivery Partner)
+
+CreatedAt (Timestamp)
+
+6. FEATURE WORKFLOW (The "User Journey")
+Stock Entry: Admin logs in at 4:00 PM and uploads the day's catch (e.g., 50kg Sardines).
+
+Shop Open: Admin toggles the shop to "Open."
+
+Ordering: Customer logs in at 7:00 PM, selects "Sardine (Cleaned & Cut)," and places an order.
+
+Processing: At 6:00 AM, Admin generates the "Packing List" and hands it to the cleaning staff.
+
+Assignment: Admin marks the order as "Packed" and assigns it to a Delivery Partner.
+
+Delivery: Partner sees the address on their phone, delivers the fish, and marks it "Delivered."
+
+7. API ENDPOINTS (The URL Rules)
+POST /api/auth/register -> Create new user account.
+
+POST /api/auth/login -> Login (Admin/User/Partner).
+
+GET /api/products -> Get list of today's available fish.
+
+POST /api/products -> Admin adds new stock.
+
+POST /api/orders -> Customer places a new order.
+
+GET /api/orders/myorders -> Customer views their history.
+
+GET /api/orders/admin -> Admin views all incoming orders.
+
+PUT /api/orders/:id/status -> Partner/Admin updates status (e.g., to "Delivered").
