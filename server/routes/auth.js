@@ -9,15 +9,16 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, phone, address, role } = req.body;
+    const { name, email, password, phone, address } = req.body;
+    const normalizedEmail = (email || '').toLowerCase().trim();
 
     // Validation
-    if (!name || !email || !password) {
+    if (!name || !normalizedEmail || !password) {
       return res.status(400).json({ message: 'Please provide name, email, and password' });
     }
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -29,11 +30,12 @@ router.post('/register', async (req, res) => {
     // Create user
     const user = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       phone: phone || '',
       address: address || '',
-      role: role || 'user',
+      // Strict: all self-registrations are customers
+      role: 'user',
     });
 
     // Generate token
@@ -64,14 +66,15 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = (email || '').toLowerCase().trim();
 
     // Validation
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
     // Check if user exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
