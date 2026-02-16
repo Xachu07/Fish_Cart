@@ -57,7 +57,11 @@ const Users = () => {
 
   return (
     <div style={{ padding: 16 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700 }}>Manage Users</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700 }}>Customers</h2>
+      <p style={{ marginTop: 8, color: '#6b7280', maxWidth: 800 }}>
+        Manage all customers and their details here. Every time someone creates an account on Fish Cart, their details are saved.
+        Use this page to search for a customer, view addresses and past orders, or create accounts for delivery partners and staff.
+      </p>
       {loading ? (
         <div>Loading...</div>
       ) : (

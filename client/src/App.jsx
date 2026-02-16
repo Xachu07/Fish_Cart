@@ -135,6 +135,16 @@ function AppContent() {
           }
         />
         <Route
+          path="/admin/profile"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <Profile />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
           path="/admin/orders"
           element={
             <AdminRoute>

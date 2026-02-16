@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import { toast } from 'react-hot-toast';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -13,7 +14,20 @@ const Products = () => {
     imageURL: '',
     category: 'Sea Fish',
     status: 'Available',
+    cutOptions: [],
+    isActive: true,
   });
+  const [edits, setEdits] = useState({});
+  const [savingMap, setSavingMap] = useState({});
+
+  useEffect(() => {
+    // initialize inline edits map when products load/change
+    const map = {};
+    (products || []).forEach((p) => {
+      map[p._id] = { price: p.price ?? '', stockQuantity: p.stockQuantity ?? 0 };
+    });
+    setEdits(map);
+  }, [products]);
 
   useEffect(() => {
     fetchProducts();
@@ -22,7 +36,12 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       const res = await api.get('/products');
-      setProducts(res.data);
+      // normalize isActive for older products that may not have the field (treat missing as true)
+      const normalized = (res.data || []).map((p) => ({
+        ...p,
+        isActive: typeof p.isActive === 'boolean' ? p.isActive : true,
+      }));
+      setProducts(normalized);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -37,11 +56,36 @@ const Products = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // prepare payload, normalize numbers
+      const payload = {
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+        stockQuantity: parseFloat(formData.stockQuantity) || 0,
+        cutOptions: Array.isArray(formData.cutOptions) ? formData.cutOptions : [],
+        isActive: !!formData.isActive,
+      };
+
+      // Determine status from stock only; do NOT change status when visibility (isActive) is toggled.
+      // This preserves the product's status when admin hides it (option B).
+      payload.status = payload.stockQuantity > 0 ? (payload.status || 'Available') : 'Sold Out';
       if (editingProduct) {
-        await api.put(`/products/${editingProduct._id}`, formData);
+        // optimistic update in UI
+        const orig = products.find((p) => p._id === editingProduct._id);
+        setProducts((prev) => prev.map((p) => (p._id === editingProduct._id ? { ...p, ...payload } : p)));
+        setSavingMap((s) => ({ ...s, [editingProduct._id]: true }));
+        try {
+          await api.put(`/products/${editingProduct._id}`, payload);
+        } catch (err) {
+          // revert on error
+          setProducts((prev) => prev.map((p) => (p._id === editingProduct._id ? orig : p)));
+          throw err;
+        } finally {
+          setSavingMap((s) => ({ ...s, [editingProduct._id]: false }));
+        }
       } else {
-        await api.post('/products', formData);
+        await api.post('/products', payload);
       }
+
       setShowModal(false);
       setEditingProduct(null);
       setFormData({
@@ -51,10 +95,13 @@ const Products = () => {
         imageURL: '',
         category: 'Sea Fish',
         status: 'Available',
+        cutOptions: [],
+        isActive: true,
       });
-      fetchProducts();
+      await fetchProducts();
+      toast.success('Product saved');
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to save product');
+      toast.error(error.response?.data?.message || 'Failed to save product');
     }
   };
 
@@ -67,8 +114,28 @@ const Products = () => {
       imageURL: product.imageURL || '',
       category: product.category,
       status: product.status,
+      cutOptions: product.cutOptions || [],
+      isActive: typeof product.isActive === 'boolean' ? product.isActive : true,
     });
     setShowModal(true);
+  };
+
+  // determine allowed cut options based on fish name (smaller fish get only Whole/Cleaned)
+  const getAllowedCutOptions = (fishName = '', category = '') => {
+    const name = (fishName || '').toLowerCase();
+    const smallKeywords = ['sardine', 'mackerel', 'mathi', 'anchovy', 'kaima', 'sprat'];
+    const largeKeywords = ['tuna', 'neymeen', 'seer', 'king', 'salmon', 'pomfret', 'tuna', 'barracuda'];
+    const allOptions = ['Whole (Uncleaned)', 'Cleaned (Whole but gutted)', 'Curry Piece', 'Fry Cut (Sliced)'];
+    // if fishName matches small keywords -> only whole/cleaned
+    if (smallKeywords.some((k) => name.includes(k))) {
+      return allOptions.filter((o) => o === 'Whole (Uncleaned)' || o === 'Cleaned (Whole but gutted)');
+    }
+    // if fishName matches large keywords -> allow all
+    if (largeKeywords.some((k) => name.includes(k))) {
+      return allOptions;
+    }
+    // fallback: allow all by default
+    return allOptions;
   };
 
   const handleDelete = async (id) => {
@@ -90,6 +157,8 @@ const Products = () => {
       imageURL: '',
       category: 'Sea Fish',
       status: 'Available',
+      cutOptions: [],
+      isActive: true,
     });
     setShowModal(true);
   };
@@ -100,8 +169,10 @@ const Products = () => {
 
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Manage Products</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <h2 style={{ margin: 0 }}>Products</h2>
+        </div>
         <button
           onClick={openAddModal}
           style={{
@@ -117,68 +188,183 @@ const Products = () => {
         </button>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: '20px',
-        }}
-      >
-        {products.map((product) => (
-          <div
-            key={product._id}
-            style={{
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              padding: '15px',
-            }}
-          >
-            {product.imageURL && (
-              <img
-                src={product.imageURL}
-                alt={product.fishName}
-                style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px', marginBottom: '10px' }}
-              />
-            )}
-            <h3>{product.fishName}</h3>
-            <p>Category: {product.category}</p>
-            <p>Price: ₹{product.price}/kg</p>
-            <p>Stock: {product.stockQuantity} kg</p>
-            <p>
-              Status: <span style={{ color: product.status === 'Available' ? '#28a745' : '#dc3545' }}>{product.status}</span>
-            </p>
-            <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => handleEdit(product)}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(product._id)}
-                style={{
-                  flex: 1,
-                  padding: '8px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Delete
-              </button>
+      <style>
+        {`
+          .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+          @media (max-width: 1024px) { .products-grid { grid-template-columns: repeat(2, 1fr); } }
+          @media (max-width: 640px) { .products-grid { grid-template-columns: 1fr; } }
+        `}
+      </style>
+
+      <div className="products-grid">
+        {products.map((product) => {
+          const current = edits[product._id] || { price: product.price || '', stockQuantity: product.stockQuantity || 0 };
+          return (
+            <div
+              key={product._id}
+              style={{
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '15px',
+                background: '#fff',
+                boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+              }}
+            >
+              {product.imageURL ? (
+                <img
+                  src={product.imageURL}
+                  alt={product.fishName}
+                  style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px', marginBottom: '10px' }}
+                />
+              ) : (
+                <div style={{ width: '100%', height: 150, background: '#f3f4f6', borderRadius: 4, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+                  No image
+                </div>
+              )}
+
+              <h3 style={{ margin: '6px 0' }}>{product.fishName}</h3>
+              <p style={{ color: '#6b7280', margin: '6px 0' }}>{product.category}</p>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 12, color: '#374151' }}>Today's Price (₹/kg)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="price"
+                    value={current.price}
+                    onChange={(e) => setEdits({ ...edits, [product._id]: { ...current, price: e.target.value } })}
+                    style={{ width: '100%', padding: '8px', marginTop: 6 }}
+                  />
+                </div>
+                <div style={{ width: 140 }}>
+                  <label style={{ display: 'block', fontSize: 12, color: '#374151' }}>Available (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    name="stockQuantity"
+                    value={current.stockQuantity}
+                    onChange={(e) => setEdits({ ...edits, [product._id]: { ...current, stockQuantity: e.target.value } })}
+                    style={{ width: '100%', padding: '8px', marginTop: 6 }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                <div>
+                  <div style={{ fontSize: 13, color: '#374151' }}>Live Remaining</div>
+                  <div style={{ fontWeight: 700 }}>{(product.stockQuantity || 0).toFixed(2)} kg</div>
+                </div>
+                <div>
+                  <span style={{ padding: '6px 10px', borderRadius: 999, background: (product.stockQuantity || 0) > 0 ? '#ecfdf5' : '#fff1f2', color: (product.stockQuantity || 0) > 0 ? '#065f46' : '#991b1b', fontWeight: 700, fontSize: 12 }}>
+                    {(product.stockQuantity || 0) > 0 ? 'In Stock' : 'Sold Out'}
+                  </span>
+                </div>
+              </div>
+              {/* Status and Visibility row */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: '#374151' }}>Status:</span>
+                  <span style={{ padding: '4px 8px', borderRadius: 6, background: product.status === 'Available' ? '#ecfdf5' : '#fff1f2', color: product.status === 'Available' ? '#065f46' : '#991b1b', fontWeight: 700, fontSize: 12 }}>
+                    {product.status || (product.stockQuantity > 0 ? 'Available' : 'Sold Out')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: '#374151' }}>Visibility:</span>
+                  <span
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      background: product.isActive === true ? '#eff6ff' : '#fff1f2',
+                      color: product.isActive === true ? '#1e3a8a' : '#991b1b',
+                      fontWeight: 700,
+                      fontSize: 12,
+                    }}
+                  >
+                    {product.isActive === true ? 'Active' : 'Hidden'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 14, display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => handleEdit(product)}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    backgroundColor: '#0f766e',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(product._id)}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={async () => {
+                    const e = edits[product._id];
+                    if (!e) return;
+                    setSavingMap((s) => ({ ...s, [product._id]: true }));
+                    const payload = {
+                      price: parseFloat(e.price) || 0,
+                      stockQuantity: parseFloat(e.stockQuantity) || 0,
+                      status: (parseFloat(e.stockQuantity) || 0) > 0 ? 'Available' : 'Sold Out',
+                    };
+                    try {
+                      await api.put(`/products/${product._id}`, payload);
+                      await fetchProducts();
+                      toast.success('Product updated');
+                    } catch (err) {
+                      toast.error(err.response?.data?.message || 'Failed to update');
+                    } finally {
+                      setSavingMap((s) => ({ ...s, [product._id]: false }));
+                    }
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                  disabled={!!savingMap[product._id]}
+                >
+                  {savingMap[product._id] ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+              {/* Inline visibility toggle removed — use Edit modal to change visibility */}
+              {product.cutOptions && product.cutOptions.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 13, color: '#374151', marginBottom: 6 }}>Available Cuts:</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {product.cutOptions.map((c) => (
+                      <span key={c} style={{ background: '#f1f5f9', padding: '6px 8px', borderRadius: 6, fontSize: 12, color: '#0f1724' }}>
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {showModal && (
@@ -209,7 +395,12 @@ const Products = () => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3>{editingProduct ? 'Edit Product' : 'Add Product'}</h3>
+            <h3>{editingProduct ? 'Update Product' : 'Add Product'}</h3>
+            {editingProduct && formData.cutOptions && formData.cutOptions.length > 0 && (
+              <div style={{ fontSize: 13, color: '#374151', marginTop: 8 }}>
+                Selected cuts: {formData.cutOptions.join(', ')}
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '15px' }}>
                 <label>Fish Name:</label>
@@ -272,6 +463,45 @@ const Products = () => {
                 </select>
               </div>
               <div style={{ marginBottom: '15px' }}>
+                <label>Cutting / Cleaning Options:</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {(() => {
+                    const allOptions = ['Whole (Uncleaned)', 'Cleaned (Whole but gutted)', 'Curry Piece', 'Fry Cut (Sliced)'];
+                    // Show all options in Add and Update so admin can pick any; previously we filtered by fish name.
+                    const optionsToShow = allOptions;
+                    return optionsToShow.map((opt) => {
+                      const checked = (formData.cutOptions || []).includes(opt);
+                      return (
+                        <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              const next = new Set(formData.cutOptions || []);
+                              if (e.target.checked) next.add(opt);
+                              else next.delete(opt);
+                              setFormData({ ...formData, cutOptions: Array.from(next) });
+                            }}
+                          />
+                          <span style={{ fontSize: 14 }}>{opt}</span>
+                        </label>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: 6 }}>Publish Status</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={!!formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: !!e.target.checked })}
+                  />
+                  <span style={{ fontSize: 14 }}>{formData.isActive ? 'Active (visible to customers)' : 'Hidden (not visible)'}</span>
+                </label>
+              </div>
+              <div style={{ marginBottom: '15px' }}>
                 <label>Status:</label>
                 <select
                   name="status"
@@ -297,7 +527,7 @@ const Products = () => {
                     cursor: 'pointer',
                   }}
                 >
-                  {editingProduct ? 'Update' : 'Add'}
+                  {editingProduct ? 'Update Product' : 'Add Product'}
                 </button>
                 <button
                   type="button"

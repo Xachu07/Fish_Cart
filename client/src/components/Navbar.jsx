@@ -1,6 +1,5 @@
 import { useAuth } from '../context/AuthContext';
 import UserHeader from './layout/UserHeader';
-import AdminHeader from './layout/AdminHeader';
 import PartnerHeader from './layout/PartnerHeader';
 import { useLocation } from 'react-router-dom';
 
@@ -11,7 +10,6 @@ const Navbar = () => {
   // Do not render the global header on admin routes — admin layout includes its own header/sidebar
   if (location.pathname.startsWith('/admin')) return null;
 
-  if (user?.role === 'admin') return <AdminHeader />;
   if (user?.role === 'partner') return <PartnerHeader />;
   return <UserHeader />;
 };

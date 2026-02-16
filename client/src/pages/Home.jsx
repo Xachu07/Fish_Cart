@@ -54,7 +54,9 @@ const Home = () => {
     setSelectedProduct(product);
     setShowModal(true);
     setQty(1);
-    setPreparation('Whole');
+    // default preparation to first available cut option or 'Whole'
+    const opts = product.cutOptions && product.cutOptions.length ? product.cutOptions : ['Whole (Uncleaned)', 'Cleaned (Whole but gutted)'];
+    setPreparation(opts[0]);
   };
 
   const confirmAddToCart = () => {
@@ -150,6 +152,12 @@ const Home = () => {
               )}
               <h3>{product.fishName}</h3>
               <p style={{ color: '#666' }}>{product.category}</p>
+              {product.cutOptions && product.cutOptions.length > 0 && (
+                <div style={{ margin: '8px 0', fontSize: 13, color: '#374151' }}>
+                  <strong>Available:</strong>{' '}
+                  <span style={{ color: '#0f1724', fontWeight: 600 }}>{product.cutOptions.join(', ')}</span>
+                </div>
+              )}
               <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
                 ₹{product.price}/kg
               </p>
@@ -220,8 +228,11 @@ const Home = () => {
                 onChange={(e) => setPreparation(e.target.value)}
                 style={{ width: '100%', padding: '8px', marginTop: '5px' }}
               >
-                <option value="Whole">Whole</option>
-                <option value="Cleaned">Cleaned & Cut</option>
+                {(selectedProduct.cutOptions && selectedProduct.cutOptions.length ? selectedProduct.cutOptions : ['Whole (Uncleaned)', 'Cleaned (Whole but gutted)']).map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
               </select>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>

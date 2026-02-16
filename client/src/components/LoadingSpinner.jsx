@@ -19,7 +19,7 @@ const LoadingSpinner = ({ size = 'medium' }) => {
           width: sizeMap[size],
           height: sizeMap[size],
           border: `4px solid #f3f3f3`,
-          borderTop: `4px solid #007bff`,
+          borderTop: `4px solid #0f766e`,
           borderRadius: '50%',
           animation: 'spin 1s linear infinite',
         }}

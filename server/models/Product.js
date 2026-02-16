@@ -31,6 +31,14 @@ const productSchema = new mongoose.Schema(
       enum: ['Available', 'Sold Out'],
       default: 'Available',
     },
+    cutOptions: {
+      type: [String],
+      default: [],
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

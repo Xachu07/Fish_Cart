@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy } from 'react';
 import { Package, ShoppingCart, Clock, Store } from 'lucide-react';
+const OrdersChart = lazy(() => import('../../components/admin/OrdersChart'));
+import RecentOrders from '../../components/admin/RecentOrders';
+import TodaysCatch from '../../components/admin/TodaysCatch';
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [ordersList, setOrdersList] = useState([]);
   const [stats, setStats] = useState({
     todaysOrders: 0,
     revenue: 0,
@@ -47,6 +51,7 @@ const AdminDashboard = () => {
         const lowStockAlerts = products.filter((p) => typeof p.stockAvailable === 'number' && p.stockAvailable <= 10).length;
 
         if (mounted) {
+          setOrdersList(orders);
           setStats({
             todaysOrders,
             revenue,
@@ -126,6 +131,35 @@ const AdminDashboard = () => {
           </div>
         </div>
 
+      </div>
+      {/* Chart */}
+      <div className="mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            {/* Orders chart */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-slate-700">Orders Overview</h3>
+              </div>
+              {/* Chart component */}
+              <div>
+                {/* Lazy load chart to avoid SSR issues */}
+                <React.Suspense fallback={<div>Loading chart...</div>}>
+                  <OrdersChart orders={ordersList} />
+                </React.Suspense>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+              <TodaysCatch />
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
+              <RecentOrders orders={ordersList} onRefresh={() => window.location.reload()} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -40,9 +40,9 @@ router.get('/:id', async (req, res) => {
 // POST create product (Admin only)
 router.post('/', auth, adminAuth, async (req, res) => {
   try {
-    const { fishName, price, stockQuantity, imageURL, category, status } = req.body;
+    const { fishName, price, stockQuantity, imageURL, category, status, cutOptions, isActive } = req.body;
 
-    if (!fishName || !price || !stockQuantity || !category) {
+    if (!fishName || price === undefined || stockQuantity === undefined || !category) {
       return res.status(400).json({ message: 'Please provide fishName, price, stockQuantity, and category' });
     }
 
@@ -53,6 +53,8 @@ router.post('/', auth, adminAuth, async (req, res) => {
       imageURL: imageURL || '',
       category,
       status: status || 'Available',
+      cutOptions: Array.isArray(cutOptions) ? cutOptions : [],
+      isActive: typeof isActive === 'boolean' ? isActive : true,
     });
 
     res.status(201).json(product);
@@ -65,7 +67,7 @@ router.post('/', auth, adminAuth, async (req, res) => {
 // PUT update product (Admin only)
 router.put('/:id', auth, adminAuth, async (req, res) => {
   try {
-    const { fishName, price, stockQuantity, imageURL, category, status } = req.body;
+    const { fishName, price, stockQuantity, imageURL, category, status, cutOptions, isActive } = req.body;
 
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -73,12 +75,14 @@ router.put('/:id', auth, adminAuth, async (req, res) => {
     }
 
     // Update fields if provided
-    if (fishName) product.fishName = fishName;
+    if (fishName !== undefined) product.fishName = fishName;
     if (price !== undefined) product.price = price;
     if (stockQuantity !== undefined) product.stockQuantity = stockQuantity;
     if (imageURL !== undefined) product.imageURL = imageURL;
-    if (category) product.category = category;
-    if (status) product.status = status;
+    if (category !== undefined) product.category = category;
+    if (status !== undefined) product.status = status;
+    if (cutOptions !== undefined) product.cutOptions = Array.isArray(cutOptions) ? cutOptions : product.cutOptions;
+    if (isActive !== undefined) product.isActive = !!isActive;
 
     await product.save();
     res.json(product);
