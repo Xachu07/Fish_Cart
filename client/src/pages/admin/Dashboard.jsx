@@ -1,113 +1,134 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { Package, ShoppingCart, Clock, Store } from 'lucide-react';
 import api from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
-const Dashboard = () => {
+const AdminDashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalOrders: 0,
-    pendingOrders: 0,
-    shopStatus: false,
-  });
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    todaysOrders: 0,
+    revenue: 0,
+    pendingDeliveries: 0,
+    lowStockAlerts: 0,
+  });
 
   useEffect(() => {
+    let mounted = true;
+    const fetchStats = async () => {
+      try {
+        const [productsRes, ordersRes, statusRes] = await Promise.all([
+          api.get('/products'),
+          api.get('/orders/admin'),
+          api.get('/shop/status'),
+        ]);
+
+        const products = productsRes.data || [];
+        const orders = ordersRes.data || [];
+
+        // today's orders (by createdAt date)
+        const today = new Date();
+        const isSameDay = (d1, d2) =>
+          d1.getFullYear() === d2.getFullYear() &&
+          d1.getMonth() === d2.getMonth() &&
+          d1.getDate() === d2.getDate();
+        const todaysOrders = orders.filter((o) => {
+          const created = new Date(o.createdAt || o.createdAt);
+          return isSameDay(created, today);
+        }).length;
+
+        // revenue: sum order.totalAmount
+        const revenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+        // pending deliveries: statuses not Delivered or Cancelled
+        const pendingDeliveries = orders.filter((o) => !['Delivered', 'Cancelled'].includes(o.status)).length;
+
+        // low stock alerts: products with stockAvailable <= 10
+        const lowStockAlerts = products.filter((p) => typeof p.stockAvailable === 'number' && p.stockAvailable <= 10).length;
+
+        if (mounted) {
+          setStats({
+            todaysOrders,
+            revenue,
+            pendingDeliveries,
+            lowStockAlerts,
+          });
+        }
+      } catch (err) {
+        console.error('Error loading dashboard stats', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
     fetchStats();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const fetchStats = async () => {
-    try {
-      const [productsRes, ordersRes, statusRes] = await Promise.all([
-        api.get('/products'),
-        api.get('/orders/admin'),
-        api.get('/shop/status'),
-      ]);
-
-      const orders = ordersRes.data;
-      setStats({
-        totalProducts: productsRes.data.length,
-        totalOrders: orders.length,
-        pendingOrders: orders.filter((o) => o.status === 'Pending').length,
-        shopStatus: statusRes.data.isOpen,
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
+    return <div className="p-6 text-center">Loading...</div>;
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <h1>Admin Dashboard</h1>
-      <p>Welcome, {user?.name}!</p>
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+        <p className="text-slate-500 mt-1">Here is what is happening with your store today.</p>
+      </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '20px',
-          marginTop: '30px',
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: '#007bff',
-            color: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            textAlign: 'center',
-          }}
-        >
-          <h3>Total Products</h3>
-          <p style={{ fontSize: '36px', margin: '10px 0' }}>{stats.totalProducts}</p>
+      {/* STAT CARDS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        {/* Card 1: Today's Orders */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500 mb-1">Today's Orders</p>
+            <p className="text-2xl font-bold text-slate-800">{stats.todaysOrders}</p>
+          </div>
+          <div className="bg-blue-50 p-3 rounded-lg text-blue-600">
+            <ShoppingCart size={24} />
+          </div>
         </div>
-        <div
-          style={{
-            backgroundColor: '#28a745',
-            color: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            textAlign: 'center',
-          }}
-        >
-          <h3>Total Orders</h3>
-          <p style={{ fontSize: '36px', margin: '10px 0' }}>{stats.totalOrders}</p>
+
+        {/* Card 2: Revenue */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500 mb-1">Revenue</p>
+            <p className="text-2xl font-bold text-slate-800">
+              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(stats.revenue)}
+            </p>
+          </div>
+          <div className="bg-green-50 p-3 rounded-lg text-green-600">
+            <Package size={24} />
+          </div>
         </div>
-        <div
-          style={{
-            backgroundColor: '#ffc107',
-            color: 'black',
-            padding: '20px',
-            borderRadius: '8px',
-            textAlign: 'center',
-          }}
-        >
-          <h3>Pending Orders</h3>
-          <p style={{ fontSize: '36px', margin: '10px 0' }}>{stats.pendingOrders}</p>
+
+        {/* Card 3: Pending Deliveries */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500 mb-1">Pending Deliveries</p>
+            <p className="text-2xl font-bold text-slate-800">{stats.pendingDeliveries}</p>
+          </div>
+          <div className="bg-amber-50 p-3 rounded-lg text-amber-600">
+            <Clock size={24} />
+          </div>
         </div>
-        <div
-          style={{
-            backgroundColor: stats.shopStatus ? '#28a745' : '#dc3545',
-            color: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            textAlign: 'center',
-          }}
-        >
-          <h3>Shop Status</h3>
-          <p style={{ fontSize: '24px', margin: '10px 0' }}>
-            {stats.shopStatus ? 'OPEN' : 'CLOSED'}
-          </p>
+
+        {/* Card 4: Low Stock Alerts */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500 mb-1">Low Stock Alerts</p>
+            <p className="text-2xl font-bold text-slate-800">{stats.lowStockAlerts}</p>
+          </div>
+          <div className="bg-indigo-50 p-3 rounded-lg text-indigo-600">
+            <Store size={24} />
+          </div>
         </div>
+
       </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

@@ -1,0 +1,79 @@
+import { X, Facebook, Instagram, Linkedin, ArrowUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+export default function Footer() {
+  const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  return (
+    <footer style={{ background: 'linear-gradient(90deg,#042a3a 0%, #07344a 50%, #082e45 100%)', color: '#e6eef6', position: 'relative' }}>
+      <div style={{ maxWidth: 1150, margin: '0 auto', padding: '48px 20px', display: 'flex', gap: 24, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        {/* Left column: brand + tagline */}
+        <div style={{ flex: 1, maxWidth: 360 }}>
+          <div style={{ fontWeight: 800, color: '#f0fbff', fontSize: 20 }}>Fish Cart</div>
+          <div style={{ marginTop: 10, fontWeight: 700, color: '#f0fbff' }}>FROM SEA TO DOOR</div>
+          <p style={{ marginTop: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
+            Bringing the true taste of the ocean directly to your kitchen.
+          </p>
+        </div>
+
+        {/* Middle column: quick links */}
+        <div style={{ flex: 1 }}>
+          <div style={{ color: '#f0fbff', fontWeight: 700, marginBottom: 8 }}>Quick Links</div>
+          <ul style={{ marginTop: 8, listStyle: 'none', padding: 0, color: 'rgba(255,255,255,0.85)' }}>
+            <li style={{ marginBottom: 8 }}><Link to="/" style={{ color: 'rgba(255,255,255,0.85)' }}>Home</Link></li>
+            <li style={{ marginBottom: 8 }}><Link to="/daily" style={{ color: 'rgba(255,255,255,0.85)' }}>Daily Catch</Link></li>
+            <li style={{ marginBottom: 8 }}><Link to="/about" style={{ color: 'rgba(255,255,255,0.85)' }}>About Us</Link></li>
+            <li style={{ marginBottom: 8 }}><Link to="/login" style={{ color: 'rgba(255,255,255,0.85)' }}>Login</Link></li>
+            <li style={{ marginBottom: 8 }}><Link to="/register" style={{ color: 'rgba(255,255,255,0.85)' }}>Sign Up</Link></li>
+          </ul>
+        </div>
+
+        {/* Right column: contact */}
+        <div style={{ flex: 1, maxWidth: 320 }}>
+          <div style={{ color: '#f0fbff', fontWeight: 700, marginBottom: 8 }}>Contact Us</div>
+          <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.95)', fontSize: 14, lineHeight: 1.6 }}>
+            <div>📍 Head Office: Azheekkal Branch, Kerala</div>
+            <div>📞 Call / WhatsApp: <a href="tel:+917594046060" style={{ color: 'rgba(255,255,255,0.9)', textDecoration: 'none' }}>+91 7594046060</a></div>
+            <div>✉️ Email: <a href="mailto:fishcart@gmail.com" style={{ color: 'rgba(255,255,255,0.9)', textDecoration: 'none' }}>fishcart@gmail.com</a></div>
+            <div>🛒 Order Window: 5:00 PM to 12:00 AM (Daily)</div>
+            <div>🛵 Delivery Window: Next Day Morning</div>
+          </div>
+        </div>
+      </div>
+
+      {/* accent line */}
+      <div style={{ height: 4, background: 'rgba(255,255,255,0.04)' }} />
+
+      <div style={{ padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: 1150, margin: '0 auto' }}>
+        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
+          <div>© 2026 Fish Cart. All Rights Reserved.</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* back-to-top button moved to fixed corner */}
+        </div>
+      </div>
+
+      {/* fixed corner back-to-top button */}
+      <button
+        onClick={scrollTop}
+        aria-label="Back to top"
+        style={{
+          position: 'fixed',
+          right: 20,
+          bottom: 20,
+          background: '#0ea5a0',
+          borderRadius: 999,
+          padding: 12,
+          border: 'none',
+          zIndex: 1000,
+          boxShadow: '0 6px 18px rgba(0,0,0,0.18)',
+        }}
+      >
+        <ArrowUp color="#fff" />
+      </button>
+
+      {/* decorative diamond removed */}
+    </footer>
+  );
+}
+

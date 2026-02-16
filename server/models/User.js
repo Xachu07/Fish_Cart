@@ -26,6 +26,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    areaOfService: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Area',
+      default: null,
+    },
     role: {
       type: String,
       enum: ['user', 'admin', 'partner'],

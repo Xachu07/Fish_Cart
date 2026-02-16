@@ -19,6 +19,8 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/shop', require('./routes/shop'));
+app.use('/api/areas', require('./routes/areas'));
+app.use('/api/admin', require('./routes/adminUsers'));
 
 // Test route
 app.get('/', (req, res) => {

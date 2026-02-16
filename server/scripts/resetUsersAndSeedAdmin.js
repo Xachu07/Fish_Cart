@@ -16,8 +16,8 @@ async function main() {
     const hashedPassword = await bcrypt.hash('admin', 10);
 
     const admin = await User.create({
-      name: 'Admin',
-      email: 'Admin@gmail.com', // stored lowercased by schema
+      name: 'FishCart Admin',
+      email: 'fishcart@gmail.com', // stored lowercased by schema
       password: hashedPassword,
       phone: '',
       address: '',

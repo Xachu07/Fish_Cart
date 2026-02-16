@@ -1,19 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
+import { toast } from 'react-hot-toast';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     phone: '',
     address: '',
+    areaId: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  const [areas, setAreas] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .get('/areas')
+      .then((res) => {
+        if (mounted) setAreas(res.data || []);
+      })
+      .catch(() => {
+        if (mounted) setAreas([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,18 +44,43 @@ const Register = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    // client-side validation
+    if (!/^[A-Za-z\s]+$/.test(formData.name)) {
+      setError('Full name must contain only alphabets and spaces');
+      setLoading(false);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.com$/i.test(formData.email)) {
+      setError('Email must be a valid .com address');
+      setLoading(false);
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(formData.phone)) {
+      setError('Phone must be a 10-digit number starting with 6-9');
+      setLoading(false);
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
 
     const result = await register(
       formData.name,
       formData.email,
       formData.password,
+      formData.confirmPassword,
       formData.phone,
-      formData.address
+      formData.address,
+      formData.areaId
     );
     if (result.success) {
+      toast.success('Registration successful');
       navigate('/');
     } else {
       setError(result.message);
+      toast.error(result.message || 'Registration failed');
     }
     setLoading(false);
   };
@@ -87,13 +133,40 @@ const Register = () => {
           />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label>Address:</label>
+          <label>Delivery Address:</label>
           <textarea
             name="address"
             value={formData.address}
             onChange={handleChange}
             style={{ width: '100%', padding: '8px', marginTop: '5px' }}
           />
+        </div>
+        <div style={{ marginBottom: '15px' }}>
+          <label>Confirm Password:</label>
+          <input
+            type="password"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+          />
+        </div>
+        <div style={{ marginBottom: '15px' }}>
+          <label>Area of Service:</label>
+          <select
+            name="areaId"
+            value={formData.areaId}
+            onChange={handleChange}
+            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+          >
+            <option value="">Select area (optional)</option>
+            {areas.map((a) => (
+              <option key={a._id} value={a._id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         <button

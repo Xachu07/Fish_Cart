@@ -1,0 +1,42 @@
+:root{
+  --sea-600:#0f766e;
+  --sea-500:#38b78f;
+  --sea-50:#f7fbfb;
+  --accent:#f97316;
+  --bg:#ffffff;
+  --text:#0f172a;
+}
+*{box-sizing:border-box}
+a{font-family: 'Poppins', Inter, system-ui, Segoe UI, Roboto, 'Helvetica Neue', Arial;}
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+body{margin:0;font-family:'Poppins',Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg);color:var(--text)}
+a{color:var(--sea-600);text-decoration:none}
+a:hover{color:var(--sea-500)}
+.container{max-width:1150px;margin:0 auto;padding:0 16px}
+.btn-primary{background:var(--sea-600);color:#fff;padding:8px 12px;border-radius:8px}
+.btn-accent{background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px}
+
+.bg-sea { background: linear-gradient(90deg, rgba(15,118,110,0.06), rgba(255,255,255,0)); }
+
+.hero-overlay{
+  background: linear-gradient(90deg, rgba(0,0,0,0.5), rgba(0,0,0,0.15));
+}
+.hero-title{
+  font-weight:800;
+  color: #fff;
+  font-size: clamp(1.5rem, 4vw, 2.75rem);
+  line-height:1.05;
+}
+.hero-sub{
+  color: rgba(255,255,255,0.9);
+  font-size: clamp(0.95rem, 2vw, 1.125rem);
+}
+
+.logo-text{
+  font-family: 'Poppins', Inter, system-ui, Segoe UI, Roboto, 'Helvetica Neue', Arial;
+  font-weight: 800;
+  color: var(--sea-600);
+  font-size: 1.125rem;
+  letter-spacing: -0.2px;
+}
+
