@@ -17,6 +17,7 @@ import AdminOrders from './pages/admin/AdminOrders';
 import PackingList from './pages/admin/PackingList';
 import ShopStatus from './pages/admin/ShopStatus';
 import AdminAreas from './pages/admin/Areas';
+import DeliveryPartners from './pages/admin/DeliveryPartners';
 import About from './pages/About';
 import PartnerLayout from './pages/partner/PartnerLayout';
 import PartnerDashboard from './pages/partner/PartnerDashboard';
@@ -180,6 +181,16 @@ function AppContent() {
             <AdminRoute>
               <AdminLayout>
                 <AdminAreas />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/delivery-partners"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <DeliveryPartners />
               </AdminLayout>
             </AdminRoute>
           }

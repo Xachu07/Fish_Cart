@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Store, Users, MapPin, LogOut, Menu, X, Search, Bell } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Store, Users, MapPin, Truck, LogOut, Menu, X, Search, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const AdminLayout = ({ children }) => {
@@ -85,6 +85,7 @@ const AdminLayout = ({ children }) => {
             { to: '/admin/shop-status', label: 'Shop Status', icon: Store },
             { to: '/admin/areas', label: 'Areas', icon: MapPin },
             { to: '/admin/users', label: 'Customers', icon: Users },
+            { to: '/admin/delivery-partners', label: 'Delivery Partner', icon: Truck },
           ].map((item) => {
             const Icon = item.icon;
             const active = location.pathname.startsWith(item.to);
@@ -137,6 +138,7 @@ const AdminLayout = ({ children }) => {
                 { to: '/admin/shop-status', label: 'Shop Status', icon: Store },
                 { to: '/admin/areas', label: 'Areas', icon: MapPin },
                 { to: '/admin/users', label: 'Customers', icon: Users },
+                { to: '/admin/delivery-partners', label: 'Delivery Partner', icon: Truck },
               ].map((item) => {
                 const Icon = item.icon;
                 const active = location.pathname.startsWith(item.to);
