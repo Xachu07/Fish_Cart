@@ -14,13 +14,21 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const result = await login(email, password);
-    if (result.success) {
-      navigate('/');
-    } else {
-      setError(result.message || 'Login failed');
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        // Redirect after a tick so auth context state is committed before AdminRoute checks user
+        const role = result.user?.role;
+        const path = role === 'admin' ? '/admin' : role === 'partner' ? '/partner' : '/';
+        setTimeout(() => navigate(path, { replace: true }), 0);
+      } else {
+        setError(result.message || 'Login failed');
+      }
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

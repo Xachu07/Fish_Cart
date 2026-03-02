@@ -87,19 +87,6 @@ const Profile = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved':
-        return '#28a745';
-      case 'rejected':
-        return '#dc3545';
-      case 'pending':
-        return '#ffc107';
-      default:
-        return '#6c757d';
-    }
-  };
-
   if (!user) {
     return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
   }
@@ -147,25 +134,6 @@ const Profile = () => {
             <div style={{ marginBottom: '15px' }}>
               <strong>Email:</strong> {user.email}
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <strong>Role:</strong> {user.role === 'user' ? 'Customer' : user.role === 'admin' ? 'Admin' : 'Delivery Partner'}
-            </div>
-            {user.role !== 'admin' && (
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Account Status:</strong>{' '}
-                <span
-                  style={{
-                    padding: '4px 12px',
-                    borderRadius: '12px',
-                    backgroundColor: getStatusColor(user.status || 'pending'),
-                    color: 'white',
-                    fontSize: '14px',
-                  }}
-                >
-                  {(user.status || 'pending').toUpperCase()}
-                </span>
-              </div>
-            )}
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -368,7 +336,7 @@ const ChangeEmailForm = () => {
         name="password"
         value={form.password}
         onChange={onChange}
-        placeholder="Enter current password"
+        placeholder="Current password"
         type="password"
         style={{ padding: 8 }}
       />

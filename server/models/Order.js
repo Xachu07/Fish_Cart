@@ -40,6 +40,26 @@ const orderSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    paymentMethod: {
+      type: String,
+      enum: ['PREPAID', 'COD'],
+      default: 'COD',
+    },
+    issueReported: {
+      type: String,
+      default: null,
+    },
+    deliveryFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    deliveryOverride: {
+      name: String,
+      phone: String,
+      address: String,
+      areaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Area' },
+    },
   },
   { timestamps: true }
 );

@@ -16,10 +16,9 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [areas, setAreas] = useState([]);
   const { register } = useAuth();
   const navigate = useNavigate();
-
-  const [areas, setAreas] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -31,9 +30,7 @@ const Register = () => {
       .catch(() => {
         if (mounted) setAreas([]);
       });
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   const handleChange = (e) => {
@@ -44,19 +41,36 @@ const Register = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    // client-side validation
-    if (!/^[A-Za-z\s]+$/.test(formData.name)) {
-      setError('Full name must contain only alphabets and spaces');
+
+    const name = (formData.name || '').trim();
+    const email = (formData.email || '').trim().toLowerCase();
+    const phoneRaw = (formData.phone || '').trim();
+    const phoneDigits = phoneRaw.replace(/\D/g, '');
+    const address = (formData.address || '').trim();
+
+    if (!name || name.length < 2) {
+      setError('Please enter your full name');
       setLoading(false);
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.com$/i.test(formData.email)) {
-      setError('Email must be a valid .com address');
+    if (!/^[A-Za-z\s.\-]+$/.test(name)) {
+      setError('Name can only contain letters, spaces, dots and hyphens');
       setLoading(false);
       return;
     }
-    if (!/^[6-9]\d{9}$/.test(formData.phone)) {
+    const atIdx = email.indexOf('@');
+    if (!email || atIdx < 1 || !email.includes('.', atIdx + 1) || email.length < 5) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
       setError('Phone must be a 10-digit number starting with 6-9');
+      setLoading(false);
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
       setLoading(false);
       return;
     }
@@ -65,129 +79,164 @@ const Register = () => {
       setLoading(false);
       return;
     }
+    if (address && address.length < 2) {
+      setError('Please enter a valid delivery address');
+      setLoading(false);
+      return;
+    }
 
     const result = await register(
-      formData.name,
-      formData.email,
+      name,
+      email,
       formData.password,
       formData.confirmPassword,
-      formData.phone,
-      formData.address,
-      formData.areaId
+      phoneDigits,
+      address,
+      formData.areaId || undefined
     );
+
     if (result.success) {
       toast.success('Registration successful');
       navigate('/');
     } else {
-      setError(result.message);
+      setError(result.message || 'Registration failed');
       toast.error(result.message || 'Registration failed');
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Name:</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
+    <div style={{ minHeight: '70vh', background: 'var(--sea-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
+      <div style={{ width: '100%', maxWidth: 440, margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 18, textAlign: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--sea-600)' }}>Fish Cart</div>
+          <div style={{ marginTop: 8, fontSize: 18, fontWeight: 700, color: 'var(--sea-600)' }}>Create your account</div>
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
+
+        {/* Form Card */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 12px 32px rgba(12,74,63,0.06)' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Full Name</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Phone</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Full Delivery Address</label>
+              <textarea
+                rows={3}
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                required
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box', resize: 'none' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Delivery Area</label>
+              <select
+                name="areaId"
+                value={formData.areaId}
+                onChange={handleChange}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', background: '#fff', boxSizing: 'border-box' }}
+              >
+                <option value="">Select your area...</option>
+                {areas.map((a) => (
+                  <option key={a._id} value={a._id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Confirm Password</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            {error && <div style={{ color: '#ef4444', fontSize: 14 }}>{error}</div>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: 12,
+                background: 'var(--sea-600)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                marginTop: 4,
+              }}
+            >
+              {loading ? 'Creating account...' : 'Create Account'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: 12, textAlign: 'center' }}>
+            <span style={{ color: 'var(--text)', fontSize: 14 }}>Already have an account? </span>
+            <Link to="/login" style={{ color: 'var(--sea-600)', textDecoration: 'none', fontWeight: 700 }}>
+              Log in here
+            </Link>
+          </div>
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Password:</label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Phone:</label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Delivery Address:</label>
-          <textarea
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Confirm Password:</label>
-          <input
-            type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Area of Service:</label>
-          <select
-            name="areaId"
-            value={formData.areaId}
-            onChange={handleChange}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          >
-            <option value="">Select area (optional)</option>
-            {areas.map((a) => (
-              <option key={a._id} value={a._id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '10px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Registering...' : 'Register'}
-        </button>
-      </form>
-      <p style={{ marginTop: '15px', textAlign: 'center' }}>
-        Already have an account? <Link to="/login">Login here</Link>
-      </p>
+      </div>
     </div>
   );
 };

@@ -8,6 +8,11 @@ const areaSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    deliveryFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );

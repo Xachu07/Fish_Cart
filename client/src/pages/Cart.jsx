@@ -1,64 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
 const Cart = () => {
-  const { cart, removeFromCart, updateQuantity, clearCart, getTotal } = useCart();
-  const { user } = useAuth();
+  const { cart, removeFromCart, updateQuantity, getTotal } = useCart();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [shopStatus, setShopStatus] = useState(false);
 
   useEffect(() => {
-    fetchShopStatus();
+    api.get('/shop/status').then((res) => setShopStatus(res.data.isOpen)).catch(() => setShopStatus(false));
   }, []);
 
-  const fetchShopStatus = async () => {
-    try {
-      const res = await api.get('/shop/status');
-      setShopStatus(res.data.isOpen);
-    } catch (error) {
-      console.error('Error fetching shop status:', error);
-    }
-  };
-
-  const handleCheckout = async () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    if (cart.length === 0) {
-      setError('Cart is empty');
-      return;
-    }
-
-    if (!shopStatus) {
-      setError('Shop is currently closed. Please try again later.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const items = cart.map((item) => ({
-        fishName: item.fishName,
-        qty: item.qty,
-        preparation: item.preparation,
-      }));
-
-      await api.post('/orders', { items });
-      clearCart();
-      navigate('/orders');
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to place order');
-    } finally {
-      setLoading(false);
-    }
+  const goToCheckout = () => {
+    navigate('/checkout');
   };
 
   if (cart.length === 0) {
@@ -85,7 +40,6 @@ const Cart = () => {
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h2>Your Cart</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
         <thead>
           <tr style={{ borderBottom: '2px solid #ddd' }}>
@@ -137,24 +91,24 @@ const Cart = () => {
       <div style={{ borderTop: '2px solid #ddd', paddingTop: '20px' }}>
         <h3 style={{ textAlign: 'right' }}>Total: ₹{getTotal()}</h3>
         {!shopStatus && (
-          <p style={{ color: 'red', textAlign: 'right' }}>Shop is currently closed</p>
+          <p style={{ color: '#b91c1c', textAlign: 'right', fontSize: 14 }}>Shop is currently closed. Orders accepted 5:00 PM – 12:00 AM.</p>
         )}
         <button
-          onClick={handleCheckout}
-          disabled={loading || !shopStatus}
+          onClick={goToCheckout}
           style={{
             width: '100%',
             padding: '15px',
-            backgroundColor: loading || !shopStatus ? '#ccc' : '#28a745',
+            backgroundColor: 'var(--sea-600)',
             color: 'white',
             border: 'none',
-            borderRadius: '4px',
-            cursor: loading || !shopStatus ? 'not-allowed' : 'pointer',
+            borderRadius: '8px',
+            cursor: 'pointer',
             fontSize: '16px',
+            fontWeight: 700,
             marginTop: '10px',
           }}
         >
-          {loading ? 'Placing Order...' : 'Checkout'}
+          Proceed to Checkout
         </button>
       </div>
     </div>

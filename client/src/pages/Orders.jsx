@@ -87,7 +87,7 @@ const Orders = () => {
               </div>
               <div>
                 <strong>Ordered on:</strong>{' '}
-                {new Date(order.createdAt).toLocaleString()}
+                {new Date(order.createdAt).toLocaleDateString()}
               </div>
               {order.assignedPartnerId && (
                 <div style={{ marginTop: '10px' }}>

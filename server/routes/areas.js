@@ -18,11 +18,14 @@ router.get('/', async (req, res) => {
 // POST /api/admin/areas - create area (admin)
 router.post('/', auth, adminAuth, async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, deliveryFee } = req.body;
     if (!name) return res.status(400).json({ message: 'Name required' });
     const existing = await Area.findOne({ name });
     if (existing) return res.status(400).json({ message: 'Area exists' });
-    const area = await Area.create({ name });
+    const area = await Area.create({
+      name,
+      deliveryFee: deliveryFee != null ? Math.max(0, Number(deliveryFee)) : 0,
+    });
     res.status(201).json(area);
   } catch (err) {
     console.error('Create area error:', err);
@@ -33,15 +36,18 @@ router.post('/', auth, adminAuth, async (req, res) => {
 // PUT /api/areas/:id - update area (admin)
 router.put('/:id', auth, adminAuth, async (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name) return res.status(400).json({ message: 'Name required' });
+    const { name, deliveryFee } = req.body;
     const area = await Area.findById(req.params.id);
     if (!area) return res.status(404).json({ message: 'Area not found' });
-    const exists = await Area.findOne({ name });
-    if (exists && exists._id.toString() !== area._id.toString()) {
-      return res.status(400).json({ message: 'Another area with same name exists' });
+    if (name != null) {
+      if (!name) return res.status(400).json({ message: 'Name required' });
+      const exists = await Area.findOne({ name });
+      if (exists && exists._id.toString() !== area._id.toString()) {
+        return res.status(400).json({ message: 'Another area with same name exists' });
+      }
+      area.name = name;
     }
-    area.name = name;
+    if (deliveryFee != null) area.deliveryFee = Math.max(0, Number(deliveryFee));
     await area.save();
     res.json(area);
   } catch (err) {

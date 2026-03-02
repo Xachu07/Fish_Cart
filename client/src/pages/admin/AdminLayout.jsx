@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Store, Users, MapPin, Truck, LogOut, Menu, X, Search, Bell } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Store, Users, MapPin, Truck, Menu, X, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const AdminLayout = ({ children }) => {
@@ -11,10 +11,8 @@ const AdminLayout = ({ children }) => {
 
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [notifOpen, setNotifOpen] = useState(false);
+  const [headerOpen, setHeaderOpen] = useState(false);
   const navigate = useNavigate();
-  const notifRef = useRef();
 
   const [isExpanded, setIsExpanded] = useState(false); // collapsed by default
   const [isMobile, setIsMobile] = useState(false);
@@ -27,15 +25,6 @@ const AdminLayout = ({ children }) => {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // close dropdowns on outside click
-  useEffect(() => {
-    function onDocClick(e) {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
-    }
-    document.addEventListener('click', onDocClick);
-    return () => document.removeEventListener('click', onDocClick);
   }, []);
 
   const collapsedWidth = 72;
@@ -180,79 +169,41 @@ const AdminLayout = ({ children }) => {
           paddingRight: 24,
         }}
       >
-        {/* TOP HEADER */}
+        {/* TOP HEADER - same style as customer page header */}
         <header
-          className="h-16 bg-white"
           style={{
-            boxShadow: '0 2px 6px rgba(15,23,42,0.04)',
-            borderBottom: '1px solid #eef2f6',
+            background: '#ffffff',
+            borderBottom: '2px solid #e6f6f3',
             position: 'fixed',
             top: 0,
             left: isMobile ? 0 : (isExpanded ? expandedWidth + 24 : collapsedWidth + 24),
             right: 0,
             zIndex: 60,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
           }}
         >
-          <div style={{ maxWidth: 1100, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* left: Admin label */}
+          <div style={{ maxWidth: 1150, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ minWidth: 180 }}>
-                <Link to="/admin/profile" style={{ textDecoration: 'none' }}>
-                  <span className="logo-text" style={{ fontWeight: 800, cursor: 'pointer', color: 'inherit' }}>Fish Cart</span>
-                </Link>
-              </div>
+              <Link to="/admin" style={{ textDecoration: 'none' }}>
+                <span style={{ fontFamily: 'Poppins, Inter, system-ui, sans-serif', fontWeight: 800, color: 'var(--sea-600)', fontSize: 18 }}>Fish Cart</span>
+              </Link>
             </div>
 
-            {/* filler to push controls to right */}
             <div style={{ flex: 1 }} />
-
-            {/* right: search + icons (aligned to far right) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ position: 'relative' }}>
-                <input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      navigate(`/admin/orders?search=${encodeURIComponent(searchTerm.trim())}`);
-                    }
-                  }}
-                  className="border border-slate-200 rounded-full px-4 py-2 w-64 pr-10"
-                  placeholder="Search orders, customers..."
-                />
-                <Search className="absolute right-4 top-2.5 w-4 h-4" style={{ color: 'var(--sea-600)' }} />
-              </div>
-
-              <div style={{ position: 'relative' }} ref={notifRef}>
                 <button
-                  onClick={() => setNotifOpen((s) => !s)}
-                  className="p-2 rounded-md hover:bg-slate-100 text-slate-700 relative"
-                  aria-label="Notifications"
+                  onClick={() => setHeaderOpen((s) => !s)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 20, border: '1px solid #e5e7eb', padding: '6px 10px', background: '#fff', cursor: 'pointer' }}
                 >
-                  <Bell className="w-5 h-5" style={{ color: 'var(--sea-600)' }} />
-                  <span style={{ position: 'absolute', top: 0, right: 0, transform: 'translate(6px,-6px)', background: '#ef4444', color: '#fff', borderRadius: 999, padding: '2px 6px', fontSize: 11, fontWeight: 700 }}>3</span>
+                  <User style={{ width: 16, height: 16 }} />
+                  <span style={{ display: 'inline-block', minWidth: 60 }}>{user.name}</span>
                 </button>
-                {notifOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-md shadow-lg z-50">
-                    <div className="p-3 border-b text-sm font-medium">Notifications</div>
-                    <div className="p-3 text-sm text-slate-700">No new notifications.</div>
+                {headerOpen && (
+                  <div style={{ position: 'absolute', right: 0, marginTop: 8, width: 180, borderRadius: 8, background: '#fff', boxShadow: '0 6px 18px rgba(0,0,0,0.08)', zIndex: 70 }}>
+                    <Link to="/admin/profile" onClick={() => setHeaderOpen(false)} style={{ display: 'block', padding: '8px 12px', color: '#374151', textDecoration: 'none' }}>Profile</Link>
+                    <button onClick={() => { setHeaderOpen(false); logout(); navigate('/'); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer' }}>Logout</button>
                   </div>
                 )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Link to="/admin/profile" className="text-sm text-slate-700 hidden sm:inline" style={{ textDecoration: 'none' }}>
-                  Admin
-                </Link>
-                <button
-                  onClick={() => logout()}
-                  className="rounded-full bg-orange-500 px-3 py-1.5 text-white font-semibold hover:bg-orange-600"
-                >
-                  Logout
-                </button>
               </div>
             </div>
           </div>

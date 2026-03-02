@@ -11,10 +11,53 @@ router.get('/users', auth, adminAuth, async (req, res) => {
     const { role } = req.query;
     const query = {};
     if (role) query.role = role;
-    const users = await User.find(query).select('-password').sort({ createdAt: -1 });
+    const users = await User.find(query)
+      .select('-password')
+      .populate('areaOfService', 'name')
+      .sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
     console.error('Get users error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/admin/partners/overview – partners with order stats for delivery dashboard
+router.get('/partners/overview', auth, adminAuth, async (req, res) => {
+  try {
+    const Order = require('../models/Order');
+    const partners = await User.find({ role: 'partner' })
+      .select('-password')
+      .populate('areaOfService', 'name')
+      .sort({ name: 1 });
+    const orders = await Order.find({ assignedPartnerId: { $exists: true, $ne: null } }).lean();
+    const byPartner = {};
+    orders.forEach((o) => {
+      const id = o.assignedPartnerId?.toString?.() || o.assignedPartnerId;
+      if (!id) return;
+      if (!byPartner[id]) byPartner[id] = { total: 0, delivered: 0, cashToCollect: 0, onRoute: false };
+      byPartner[id].total += 1;
+      if (o.status === 'Delivered') byPartner[id].delivered += 1;
+      if (o.status !== 'Delivered' && o.paymentMethod !== 'PREPAID') byPartner[id].cashToCollect += o.totalAmount || 0;
+      if (o.status === 'Out for Delivery') byPartner[id].onRoute = true;
+    });
+    const list = partners.map((p) => {
+      const id = p._id.toString();
+      const stats = byPartner[id] || { total: 0, delivered: 0, cashToCollect: 0, onRoute: false };
+      let currentStatus = 'Available';
+      if (p.isBlocked) currentStatus = 'Off Duty';
+      else if (stats.onRoute) currentStatus = 'On Route';
+      return {
+        ...p.toObject(),
+        todayLoad: stats.total,
+        completedDeliveries: stats.delivered,
+        cashToCollect: stats.cashToCollect,
+        currentStatus,
+      };
+    });
+    res.json(list);
+  } catch (err) {
+    console.error('Partners overview error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -26,22 +69,29 @@ router.post('/create-partner', auth, adminAuth, async (req, res) => {
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: 'Please provide name, email, phone and password' });
     }
-    if (!/^[A-Za-z\s]+$/.test(name)) {
-      return res.status(400).json({ message: 'Name must contain only alphabets and spaces' });
+    const trimmedName = (name || '').trim();
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    if (!/^[A-Za-z\s.\-]+$/.test(trimmedName) || trimmedName.length < 2) {
+      return res.status(400).json({ message: 'Please enter a valid full name' });
     }
-    if (!/^[^\s@]+@[^\s@]+\.com$/i.test(email)) {
-      return res.status(400).json({ message: 'Email must be a valid .com address' });
+    const atIdx = normalizedEmail.indexOf('@');
+    if (atIdx < 1 || !normalizedEmail.includes('.', atIdx + 1) || normalizedEmail.length < 5) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
     }
-    if (!/^[6-9]\d{9}$/.test(phone)) {
+    const digitsOnly = (phone || '').replace(/\D/g, '');
+    if (digitsOnly.length !== 10 || !/^[6-9]/.test(digitsOnly)) {
       return res.status(400).json({ message: 'Phone must be a 10-digit number starting with 6-9' });
     }
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) return res.status(400).json({ message: 'Email already in use' });
     const hashed = await bcrypt.hash(password, 10);
     const partner = await User.create({
-      name,
-      email: email.toLowerCase().trim(),
-      phone,
+      name: trimmedName,
+      email: normalizedEmail,
+      phone: digitsOnly,
       password: hashed,
       role: 'partner',
       isBlocked: false,
@@ -51,7 +101,8 @@ router.post('/create-partner', auth, adminAuth, async (req, res) => {
     res.status(201).json({ message: 'Partner created', partner: { id: partner._id, name: partner.name, email: partner.email, phone: partner.phone } });
   } catch (err) {
     console.error('Create partner error:', err);
-    res.status(500).json({ message: 'Server error' });
+    const message = err.code === 11000 ? 'Email already in use' : (err.message || 'Server error');
+    res.status(500).json({ message });
   }
 });
 
@@ -131,11 +182,11 @@ router.put('/assign-partner', auth, adminAuth, async (req, res) => {
     if (!partner || partner.role !== 'partner') return res.status(400).json({ message: 'Invalid partner' });
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    order.assignedPartner = partnerId;
+    order.assignedPartnerId = partnerId;
     if (order.status === 'Pending') order.status = 'Packed';
     await order.save();
-    await order.populate('user', 'name phone address');
-    await order.populate('assignedPartner', 'name phone areaOfService');
+    await order.populate('userId', 'name phone address');
+    await order.populate('assignedPartnerId', 'name phone areaOfService');
     res.json({ message: 'Partner assigned', order });
   } catch (err) {
     console.error('Assign partner error:', err);

@@ -33,12 +33,19 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   };
 
+  const saveTokenByRole = (token, role) => {
+    if (role) localStorage.setItem(`token_${role}`, token);
+  };
+
   const login = async (email, password) => {
     try {
       const res = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', res.data.token);
+      const token = res.data.token;
+      const role = res.data.user?.role;
+      localStorage.setItem('token', token);
+      saveTokenByRole(token, role);
       setUser(res.data.user);
-      return { success: true };
+      return { success: true, user: res.data.user };
     } catch (error) {
       return {
         success: false,
@@ -58,7 +65,10 @@ export const AuthProvider = ({ children }) => {
         address,
         areaId,
       });
-      localStorage.setItem('token', res.data.token);
+      const token = res.data.token;
+      const role = res.data.user?.role;
+      localStorage.setItem('token', token);
+      saveTokenByRole(token, role);
       setUser(res.data.user);
       return { success: true };
     } catch (error) {
@@ -70,12 +80,41 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    const role = user?.role;
     localStorage.removeItem('token');
+    if (role) localStorage.removeItem(`token_${role}`);
     setUser(null);
   };
 
+  const switchUser = async (role) => {
+    const token = localStorage.getItem(`token_${role}`);
+    if (!token) return null;
+    localStorage.setItem('token', token);
+    setLoading(true);
+    try {
+      const res = await api.get('/auth/me');
+      setUser(res.data.user);
+      return res.data.user;
+    } catch (err) {
+      localStorage.removeItem('token');
+      if (role) localStorage.removeItem(`token_${role}`);
+      setUser(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStoredRoles = () => {
+    const roles = [];
+    if (localStorage.getItem('token_admin')) roles.push('admin');
+    if (localStorage.getItem('token_partner')) roles.push('partner');
+    if (localStorage.getItem('token_user')) roles.push('user');
+    return roles;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, switchUser, getStoredRoles }}>
       {children}
     </AuthContext.Provider>
   );

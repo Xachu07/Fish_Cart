@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+
 :root{
   --sea-600:#0f766e;
   --sea-500:#38b78f;
@@ -8,7 +10,6 @@
 }
 *{box-sizing:border-box}
 a{font-family: 'Poppins', Inter, system-ui, Segoe UI, Roboto, 'Helvetica Neue', Arial;}
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
 body{margin:0;font-family:'Poppins',Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg);color:var(--text)}
 a{color:var(--sea-600);text-decoration:none}
 a:hover{color:var(--sea-500)}
@@ -38,5 +39,20 @@ a:hover{color:var(--sea-500)}
   color: var(--sea-600);
   font-size: 1.125rem;
   letter-spacing: -0.2px;
+}
+
+@media print {
+  body * { visibility: hidden; }
+  .packing-list-print,
+  .packing-list-print * { visibility: visible; }
+  .packing-list-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 16px;
+    background: #fff;
+  }
+  .packing-list-print .no-print { display: none !important; }
 }
 

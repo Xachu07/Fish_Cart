@@ -8,6 +8,8 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import OrderSuccess from './pages/OrderSuccess';
 import Orders from './pages/Orders';
 import Profile from './pages/Profile';
 import AdminLayout from './pages/admin/AdminLayout';
@@ -18,10 +20,12 @@ import PackingList from './pages/admin/PackingList';
 import ShopStatus from './pages/admin/ShopStatus';
 import AdminAreas from './pages/admin/Areas';
 import DeliveryPartners from './pages/admin/DeliveryPartners';
+import CustomerManagement from './pages/admin/CustomerManagement';
 import About from './pages/About';
 import PartnerLayout from './pages/partner/PartnerLayout';
 import PartnerDashboard from './pages/partner/PartnerDashboard';
 import GuestHome from './pages/GuestHome';
+import DailyCatchPage from './pages/DailyCatchPage';
 
 // Protected Route Component (logged-in)
 const ProtectedRoute = ({ children }) => {
@@ -74,6 +78,7 @@ function AppContent() {
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <Routes>
         <Route path="/" element={<HomeRouter />} />
+        <Route path="/daily-catch" element={<DailyCatchPage />} />
         <Route path="/about" element={<About />} />
         <Route
           path="/login"
@@ -96,6 +101,22 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Cart />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <Checkout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/order-success"
+          element={
+            <ProtectedRoute>
+              <OrderSuccess />
             </ProtectedRoute>
           }
         />
@@ -191,6 +212,16 @@ function AppContent() {
             <AdminRoute>
               <AdminLayout>
                 <DeliveryPartners />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <CustomerManagement />
               </AdminLayout>
             </AdminRoute>
           }

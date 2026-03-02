@@ -26,7 +26,6 @@ const UserHeader = () => {
 
         <nav style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
           <Link to="/" style={{ padding: '6px 14px', borderRadius: 20, background: 'rgba(15,118,110,0.06)', color: 'var(--sea-600)', textDecoration: 'none', fontSize: 14 }}>Home</Link>
-          <a href="#daily-catch" style={{ color: '#0f172a', textDecoration: 'none', fontSize: 14 }}>Daily Catch</a>
           <Link to="/about" style={{ color: '#0f172a', textDecoration: 'none', fontSize: 14 }}>About Us</Link>
         </nav>
 
@@ -51,7 +50,7 @@ const UserHeader = () => {
                 </button>
                 {open && (
                   <div style={{ position: 'absolute', right: 0, marginTop: 8, width: 180, borderRadius: 8, background: '#fff', boxShadow: '0 6px 18px rgba(0,0,0,0.08)' }}>
-                    <Link to="/orders" onClick={() => setOpen(false)} style={{ display: 'block', padding: '8px 12px', color: '#374151', textDecoration: 'none' }}>My Orders</Link>
+                    <Link to="/profile" onClick={() => setOpen(false)} style={{ display: 'block', padding: '8px 12px', color: '#374151', textDecoration: 'none' }}>Profile</Link>
                     <button onClick={handleLogout} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer' }}>Logout</button>
                   </div>
                 )}

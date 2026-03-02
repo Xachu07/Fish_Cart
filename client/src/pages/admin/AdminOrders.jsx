@@ -1,223 +1,312 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import { toast } from 'react-hot-toast';
 
-const AdminOrders = () => {
+const STATUS_OPTIONS = ['Pending', 'Packed', 'Out for Delivery', 'Delivered'];
+
+export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
-  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [areas, setAreas] = useState([]);
   const [partners, setPartners] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [filterArea, setFilterArea] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
-  const [assigning, setAssigning] = useState(null);
-
-  useEffect(() => {
-    fetchOrders();
-    fetchPartners();
-  }, []);
-
-  useEffect(() => {
-    if (selectedStatus === 'All') {
-      setFilteredOrders(orders);
-    } else {
-      setFilteredOrders(orders.filter((o) => o.status === selectedStatus));
-    }
-  }, [selectedStatus, orders]);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [assigningId, setAssigningId] = useState(null);
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get('/orders/admin');
-      setOrders(res.data);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
+      const params = {};
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      const res = await api.get('/orders/admin', { params });
+      setOrders(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Fetch orders error', err);
+      toast.error('Failed to load orders');
+      setOrders([]);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    setLoading(true);
+    fetchOrders();
+  }, [dateFrom, dateTo]);
+
+  useEffect(() => {
+    fetchAreas();
+    fetchPartners();
+  }, []);
+
+  const fetchAreas = async () => {
+    try {
+      const res = await api.get('/areas');
+      setAreas(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Fetch areas error', err);
+    }
+  };
+
   const fetchPartners = async () => {
     try {
-      // Get all users with partner role
-      const User = await api.get('/auth/me'); // We'll need a better endpoint, but for now let's just handle it manually
-      // For demo purposes, we'll allow manual partner ID entry or create a partners list
-    } catch (error) {
-      console.error('Error fetching partners:', error);
+      const res = await api.get('/admin/partners/overview');
+      setPartners(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Fetch partners error', err);
     }
   };
+
+  const getOrderDeliveryArea = (order) => {
+    return order.userId?.areaOfService?.name || null;
+  };
+
+  const getOrderCustomer = (order) => {
+    const o = order.deliveryOverride;
+    const u = order.userId;
+    return {
+      name: (o?.name || u?.name) || '—',
+      phone: (o?.phone || u?.phone) || '—',
+      address: (o?.address || u?.address) || '—',
+    };
+  };
+
+  const filteredOrders = orders.filter((o) => {
+    if (filterStatus !== 'All' && o.status !== filterStatus) return false;
+    if (filterArea) {
+      const areaName = getOrderDeliveryArea(o);
+      if (!areaName || areaName !== filterArea) return false;
+    }
+    return true;
+  });
 
   const updateOrderStatus = async (orderId, newStatus) => {
+    setUpdatingId(orderId);
     try {
       await api.put(`/orders/${orderId}/status`, { status: newStatus });
-      fetchOrders();
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to update order status');
-    }
-  };
-
-  const assignToPartner = async (orderId, partnerId) => {
-    if (!partnerId) {
-      alert('Please enter a partner ID');
-      return;
-    }
-    setAssigning(orderId);
-    try {
-      await api.put(`/orders/${orderId}/assign`, { partnerId });
-      alert('Order assigned successfully');
-      fetchOrders();
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to assign order');
+      toast.success('Status updated');
+      await fetchOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update status');
     } finally {
-      setAssigning(null);
+      setUpdatingId(null);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Pending':
-        return '#ffc107';
-      case 'Packed':
-        return '#17a2b8';
-      case 'Out for Delivery':
-        return '#007bff';
-      case 'Delivered':
-        return '#28a745';
-      default:
-        return '#6c757d';
+  const handlePartnerChange = async (orderId, partnerId) => {
+    if (!partnerId) return;
+    setAssigningId(orderId);
+    try {
+      await api.put('/admin/assign-partner', { orderId, partnerId });
+      toast.success('Partner assigned');
+      await fetchOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to assign partner');
+    } finally {
+      setAssigningId(null);
     }
   };
 
-  if (loading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
-  }
+  const tableStyle = {
+    width: '100%',
+    borderCollapse: 'collapse',
+    background: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+    border: '1px solid #e5e7eb',
+  };
+  const thStyle = {
+    padding: '14px 16px',
+    textAlign: 'left',
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#64748b',
+    textTransform: 'uppercase',
+    background: '#f8fafc',
+    borderBottom: '1px solid #e5e7eb',
+  };
+  const tdStyle = {
+    padding: '14px 16px',
+    borderBottom: '1px solid #f1f5f9',
+    fontSize: 14,
+    color: '#0f172a',
+    verticalAlign: 'top',
+  };
+  const selectStyle = {
+    padding: '8px 12px',
+    border: '1px solid #e2e8f0',
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 600,
+    background: '#fff',
+    minWidth: 140,
+    cursor: 'pointer',
+  };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2>All Orders</h2>
+    <div style={{ padding: '24px 16px', maxWidth: 1280, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 24 }}>Orders</h1>
 
-      <div style={{ marginBottom: '20px' }}>
-        <label>Filter by Status: </label>
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-          style={{ padding: '8px', marginLeft: '10px' }}
-        >
-          <option value="All">All</option>
-          <option value="Pending">Pending</option>
-          <option value="Packed">Packed</option>
-          <option value="Out for Delivery">Out for Delivery</option>
-          <option value="Delivered">Delivered</option>
-        </select>
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20, alignItems: 'flex-end' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>Filter by Area</label>
+          <select
+            value={filterArea}
+            onChange={(e) => setFilterArea(e.target.value)}
+            style={{
+              padding: '10px 14px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              fontSize: 14,
+              minWidth: 180,
+              background: '#fff',
+            }}
+          >
+            <option value="">All Areas</option>
+            {areas.map((a) => (
+              <option key={a._id} value={a.name}>{a.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>Filter by Status</label>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            style={{
+              padding: '10px 14px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              fontSize: 14,
+              minWidth: 180,
+              background: '#fff',
+            }}
+          >
+            <option value="All">All</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>From date</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            style={{
+              padding: '10px 14px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              fontSize: 14,
+              background: '#fff',
+            }}
+          />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>To date</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            style={{
+              padding: '10px 14px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              fontSize: 14,
+              background: '#fff',
+            }}
+          />
+        </div>
       </div>
 
-      {filteredOrders.length === 0 ? (
-        <p>No orders found.</p>
-      ) : (
-        <div>
-          {filteredOrders.map((order) => (
-            <div
-              key={order._id}
-              style={{
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                padding: '20px',
-                marginBottom: '20px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <div>
-                  <strong>Order ID:</strong> {order._id.slice(-8).toUpperCase()}
-                  <br />
-                  <strong>Customer:</strong> {order.userId?.name} ({order.userId?.email})
-                  <br />
-                  <strong>Phone:</strong> {order.userId?.phone || 'N/A'}
-                  <br />
-                  <strong>Address:</strong> {order.userId?.address || 'N/A'}
-                </div>
-                <div>
-                  <span
-                    style={{
-                      padding: '8px 15px',
-                      borderRadius: '20px',
-                      backgroundColor: getStatusColor(order.status),
-                      color: 'white',
-                      fontSize: '14px',
-                    }}
-                  >
-                    {order.status}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Items:</strong>
-                <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
-                  {order.items.map((item, index) => (
-                    <li key={index}>
-                      {item.fishName} - {item.qty} kg ({item.preparation})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Total: ₹{order.totalAmount}</strong>
-              </div>
-
-              {order.assignedPartnerId && (
-                <div style={{ marginBottom: '15px', color: '#007bff' }}>
-                  <strong>Assigned Partner:</strong> {order.assignedPartnerId.name}
-                  {order.assignedPartnerId.phone && ` - ${order.assignedPartnerId.phone}`}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '15px' }}>
-                <select
-                  value={order.status}
-                  onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                  style={{ padding: '8px', borderRadius: '4px' }}
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Packed">Packed</option>
-                  <option value="Out for Delivery">Out for Delivery</option>
-                  <option value="Delivered">Delivered</option>
-                </select>
-
-                {!order.assignedPartnerId && order.status === 'Packed' && (
-                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      placeholder="Partner ID"
-                      id={`partner-${order._id}`}
-                      style={{ padding: '8px', width: '150px' }}
-                    />
-                    <button
-                      onClick={() => {
-                        const partnerId = document.getElementById(`partner-${order._id}`).value;
-                        assignToPartner(order._id, partnerId);
-                      }}
-                      disabled={assigning === order._id}
-                      style={{
-                        padding: '8px 15px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {assigning === order._id ? 'Assigning...' : 'Assign Partner'}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
-                Ordered: {new Date(order.createdAt).toLocaleString()}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Table */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              <th style={{ ...thStyle, width: '120px' }}>Order ID & Date</th>
+              <th style={{ ...thStyle, minWidth: 200 }}>Customer Info</th>
+              <th style={{ ...thStyle, minWidth: 220 }}>Order Items & Prep</th>
+              <th style={{ ...thStyle, width: '120px' }}>Total Amount</th>
+              <th style={{ ...thStyle, width: '180px' }}>Delivery Partner</th>
+              <th style={{ ...thStyle, width: '180px' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#64748b' }}>Loading...</td>
+              </tr>
+            ) : filteredOrders.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#64748b' }}>No orders found.</td>
+              </tr>
+            ) : (
+              filteredOrders.map((order) => {
+                const customer = getOrderCustomer(order);
+                const paymentLabel = order.paymentMethod === 'PREPAID' ? 'PREPAID' : 'COD';
+                return (
+                  <tr key={order._id}>
+                    <td style={tdStyle}>
+                      <div style={{ fontWeight: 600 }}>#{String(order._id).slice(-6).toUpperCase()}</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td style={tdStyle}>
+                      <div style={{ fontWeight: 600 }}>{customer.name}</div>
+                      <div style={{ marginTop: 4 }}>{customer.phone}</div>
+                      <div style={{ fontSize: 13, color: '#475569', marginTop: 4, whiteSpace: 'pre-wrap' }}>{customer.address}</div>
+                    </td>
+                    <td style={tdStyle}>
+                      {(order.items || []).map((item, i) => (
+                        <div key={i} style={{ marginBottom: i < order.items.length - 1 ? 6 : 0 }}>
+                          {item.qty}kg {item.fishName} – {item.preparation}
+                        </div>
+                      ))}
+                    </td>
+                    <td style={tdStyle}>
+                      <span style={{ fontWeight: 600 }}>₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}</span>
+                      <span style={{ fontSize: 12, color: '#64748b', marginLeft: 4 }}>– {paymentLabel}</span>
+                    </td>
+                    <td style={tdStyle}>
+                      <select
+                        value={order.assignedPartnerId?._id ?? ''}
+                        onChange={(e) => handlePartnerChange(order._id, e.target.value || null)}
+                        disabled={assigningId === order._id}
+                        style={{ ...selectStyle, cursor: assigningId === order._id ? 'wait' : 'pointer' }}
+                      >
+                        <option value="">Unassigned</option>
+                        {partners.map((p) => (
+                          <option key={p._id} value={p._id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={tdStyle}>
+                      <select
+                        value={order.status}
+                        onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                        disabled={updatingId === order._id}
+                        style={{ ...selectStyle, cursor: updatingId === order._id ? 'wait' : 'pointer' }}
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
-};
-
-export default AdminOrders;
+}

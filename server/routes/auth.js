@@ -11,41 +11,50 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, password, confirmPassword, phone, address, areaId } = req.body;
     const normalizedEmail = (email || '').toLowerCase().trim();
+    const trimmedName = (name || '').trim();
 
     // Basic validation
-    if (!name || !normalizedEmail || !password || !confirmPassword) {
+    if (!trimmedName || !normalizedEmail || !password || !confirmPassword) {
       return res.status(400).json({ message: 'Please provide full name, email, password and confirm password' });
     }
 
-    // Password match
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    // Full name - allow letters and spaces
-    if (!/^[A-Za-z\\s]+$/.test(name)) {
-      return res.status(400).json({ message: 'Full name must contain only alphabets and spaces' });
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
-    // Email must be a .com address (simple)
-    if (!/^[^\\s@]+@[^\\s@]+\\.com$/i.test(normalizedEmail)) {
-      return res.status(400).json({ message: 'Email must be a valid .com address' });
+    // Full name: letters, spaces, dots, hyphens (e.g. "Rahul K." or "Mary-Jane")
+    if (!/^[A-Za-z\s.\-]+$/.test(trimmedName) || trimmedName.length < 2) {
+      return res.status(400).json({ message: 'Please enter a valid full name' });
     }
 
-    // Phone: 10 digits starting 6-9
-    if (phone && !/^[6-9]\\d{9}$/.test(phone)) {
+    // Email: must have @ and a dot after it
+    const atIdx = normalizedEmail.indexOf('@');
+    if (atIdx < 1 || !normalizedEmail.includes('.', atIdx + 1) || normalizedEmail.length < 5) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
+    }
+
+    // Phone: normalize to digits only, then require 10 digits starting with 6-9
+    const digitsOnly = (phone || '').replace(/\D/g, '');
+    const phoneOk = digitsOnly.length === 10 && /^[6-9]/.test(digitsOnly);
+    if (phone && !phoneOk) {
       return res.status(400).json({ message: 'Phone must be a 10-digit number starting with 6-9' });
     }
+    const phoneToSave = phoneOk ? digitsOnly : (phone || '').trim();
 
-    // Address: allow realistic addresses (letters, numbers, commas, dot, hyphen, slash)
-    if (address && !/^[A-Za-z0-9\\s,.'\\-\\/]{3,}$/.test(address)) {
-      return res.status(400).json({ message: 'Delivery address contains invalid characters' });
+    // Address: optional; if provided, allow common characters (min 2 chars)
+    const trimmedAddress = (address || '').trim();
+    if (trimmedAddress && trimmedAddress.length < 2) {
+      return res.status(400).json({ message: 'Delivery address is too short' });
     }
 
     // Check if user exists
     const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'An account with this email already exists' });
     }
 
     // Hash password
@@ -54,11 +63,11 @@ router.post('/register', async (req, res) => {
 
     // Create user (customer by default)
     const user = await User.create({
-      name,
+      name: trimmedName,
       email: normalizedEmail,
       password: hashedPassword,
-      phone: phone || '',
-      address: address || '',
+      phone: phoneToSave,
+      address: trimmedAddress || '',
       areaOfService: areaId || null,
       role: 'user',
     });
@@ -84,7 +93,14 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({ message: 'Server error' });
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'An account with this email already exists' });
+    }
+    if (error.name === 'ValidationError') {
+      const msg = error.message || 'Invalid data';
+      return res.status(400).json({ message: msg });
+    }
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 });
 
@@ -138,8 +154,8 @@ router.post('/login', async (req, res) => {
 // Get current user
 router.get('/me', auth, async (req, res) => {
   try {
-    // Populate areaOfService if set
-    await req.user.populate('areaOfService', 'name');
+    await req.user.populate('areaOfService', 'name deliveryFee');
+    const area = req.user.areaOfService;
     res.json({
       user: {
         id: req.user._id,
@@ -149,7 +165,7 @@ router.get('/me', auth, async (req, res) => {
         phone: req.user.phone,
         address: req.user.address,
         status: req.user.status,
-        areaOfService: req.user.areaOfService ? { id: req.user.areaOfService._id, name: req.user.areaOfService.name } : null,
+        areaOfService: area ? { id: area._id, name: area.name, deliveryFee: area.deliveryFee != null ? area.deliveryFee : 0 } : null,
       },
     });
   } catch (err) {
@@ -175,7 +191,8 @@ router.put('/profile', auth, async (req, res) => {
 
     await user.save();
 
-    await user.populate('areaOfService', 'name');
+    await user.populate('areaOfService', 'name deliveryFee');
+    const area = user.areaOfService;
     res.json({
       user: {
         id: user._id,
@@ -185,7 +202,7 @@ router.put('/profile', auth, async (req, res) => {
         phone: user.phone,
         address: user.address,
         status: user.status,
-        areaOfService: user.areaOfService ? { id: user.areaOfService._id, name: user.areaOfService.name } : null,
+        areaOfService: area ? { id: area._id, name: area.name, deliveryFee: area.deliveryFee != null ? area.deliveryFee : 0 } : null,
       },
     });
   } catch (error) {

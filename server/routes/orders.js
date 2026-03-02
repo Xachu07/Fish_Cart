@@ -1,6 +1,9 @@
 const express = require('express');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Area = require('../models/Area');
+const ShopStatus = require('../models/ShopStatus');
+const User = require('../models/User');
 const { auth, adminAuth, partnerAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -8,52 +11,83 @@ const router = express.Router();
 // POST create order (Customer only)
 router.post('/', auth, async (req, res) => {
   try {
-    const { items } = req.body;
+    const { items, paymentMethod: pm, deliveryOverride } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'Please provide order items' });
     }
 
-    // Calculate total amount and validate products
-    let totalAmount = 0;
+    const shopStatus = await ShopStatus.getStatus();
+    if (!shopStatus.isOpen) {
+      return res.status(400).json({ message: 'Shop is currently closed. Ordering is not available.' });
+    }
+
+    let subtotal = 0;
     const validatedItems = [];
+
+    // Normalize preparation to Order schema enum: 'Whole' | 'Cleaned'
+    const normPrep = (p) => {
+      if (!p || typeof p !== 'string') return 'Whole';
+      const s = p.toLowerCase();
+      return s.includes('clean') ? 'Cleaned' : 'Whole';
+    };
 
     for (const item of items) {
       const { fishName, qty, preparation } = item;
 
-      if (!fishName || !qty || !preparation) {
-        return res.status(400).json({ message: 'Each item must have fishName, qty, and preparation' });
+      if (!fishName || !qty) {
+        return res.status(400).json({ message: 'Each item must have fishName and qty' });
       }
 
-      // Find product to get price
       const product = await Product.findOne({ fishName, status: 'Available' });
       if (!product) {
         return res.status(400).json({ message: `Product "${fishName}" not found or not available` });
       }
 
       if (product.stockQuantity < qty) {
-        return res.status(400).json({ message: `Insufficient stock for ${fishName}` });
+        return res.status(400).json({ message: `Insufficient stock for ${fishName}. Max ${product.stockQuantity} kg available.` });
       }
 
       const itemTotal = product.price * qty;
-      totalAmount += itemTotal;
+      subtotal += itemTotal;
 
       validatedItems.push({
         fishName,
         qty,
-        preparation,
+        preparation: normPrep(preparation),
       });
     }
 
-    // Create order
-    const order = await Order.create({
+    const areaRef = deliveryOverride?.areaId || req.user.areaOfService;
+    const areaId = areaRef && (areaRef._id ? areaRef._id : areaRef);
+    let deliveryFee = 0;
+    if (areaId) {
+      const area = await Area.findById(areaId).lean();
+      if (area && area.deliveryFee != null) deliveryFee = Number(area.deliveryFee);
+    }
+
+    const totalAmount = subtotal + deliveryFee;
+    const paymentMethod = pm === 'PREPAID' ? 'PREPAID' : 'COD';
+
+    const orderPayload = {
       userId: req.user._id,
       items: validatedItems,
       totalAmount,
       status: 'Pending',
-    });
+      paymentMethod,
+      deliveryFee,
+    };
+    if (deliveryOverride && (deliveryOverride.name || deliveryOverride.phone || deliveryOverride.address || deliveryOverride.areaId)) {
+      orderPayload.deliveryOverride = {
+        name: deliveryOverride.name || undefined,
+        phone: deliveryOverride.phone || undefined,
+        address: deliveryOverride.address || undefined,
+        areaId: deliveryOverride.areaId || undefined,
+      };
+    }
 
-    // Update product stock quantities
+    const order = await Order.create(orderPayload);
+
     for (const item of items) {
       const product = await Product.findOne({ fishName: item.fishName });
       if (product) {
@@ -65,12 +99,21 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
-    // Populate user info
+    if (!order.assignedPartnerId && areaId) {
+      const partner = await User.findOne({ role: 'partner', areaOfService: areaId, isBlocked: { $ne: true } }).select('_id');
+      if (partner) {
+        order.assignedPartnerId = partner._id;
+        await order.save();
+      }
+    }
+
     await order.populate('userId', 'name email phone address');
+    await order.populate('assignedPartnerId', 'name phone');
     res.status(201).json(order);
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ message: 'Server error' });
+    const message = error.name === 'ValidationError' ? (error.message || 'Invalid order data') : 'Server error';
+    res.status(500).json({ message });
   }
 });
 
@@ -90,17 +133,38 @@ router.get('/myorders', auth, async (req, res) => {
 // GET all orders (Admin)
 router.get('/admin', auth, adminAuth, async (req, res) => {
   try {
-    const { status } = req.query;
-    let query = {};
+    const { status, dateFrom, dateTo } = req.query;
+    const query = {};
 
-    if (status) {
-      query.status = status;
+    if (status) query.status = status;
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) query.createdAt.$lte = dateTo.includes('T') ? new Date(dateTo) : new Date(dateTo + 'T23:59:59.999Z');
     }
 
-    const orders = await Order.find(query)
+    let orders = await Order.find(query)
       .sort({ createdAt: -1 })
-      .populate('userId', 'name email phone address')
-      .populate('assignedPartnerId', 'name phone');
+      .populate({ path: 'userId', select: 'name email phone address areaOfService', populate: { path: 'areaOfService', select: 'name' } })
+      .populate('assignedPartnerId', 'name phone')
+      .populate('deliveryOverride.areaId', 'name');
+
+    for (const order of orders) {
+      if (order.assignedPartnerId) continue;
+      const areaId = order.userId?.areaOfService?._id || order.deliveryOverride?.areaId?._id || order.deliveryOverride?.areaId;
+      if (!areaId) continue;
+      const partner = await User.findOne({ role: 'partner', areaOfService: areaId, isBlocked: { $ne: true } }).select('_id');
+      if (partner) {
+        order.assignedPartnerId = partner._id;
+        await order.save();
+      }
+    }
+
+    orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .populate({ path: 'userId', select: 'name email phone address areaOfService', populate: { path: 'areaOfService', select: 'name' } })
+      .populate('assignedPartnerId', 'name phone')
+      .populate('deliveryOverride.areaId', 'name');
     res.json(orders);
   } catch (error) {
     console.error('Get admin orders error:', error);
@@ -113,7 +177,11 @@ router.get('/assigned', auth, partnerAuth, async (req, res) => {
   try {
     const orders = await Order.find({ assignedPartnerId: req.user._id })
       .sort({ createdAt: -1 })
-      .populate('userId', 'name email phone address');
+      .populate({
+        path: 'userId',
+        select: 'name email phone address areaOfService',
+        populate: { path: 'areaOfService', select: 'name' },
+      });
     res.json(orders);
   } catch (error) {
     console.error('Get assigned orders error:', error);
@@ -144,6 +212,26 @@ router.get('/:id', auth, async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Get order error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT report issue on order (Partner)
+router.put('/:id/issue', auth, partnerAuth, async (req, res) => {
+  try {
+    const { issue } = req.body;
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.assignedPartnerId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    order.issueReported = issue || null;
+    await order.save();
+    await order.populate('userId', 'name email phone address');
+    await order.populate('assignedPartnerId', 'name phone');
+    res.json(order);
+  } catch (error) {
+    console.error('Report issue error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

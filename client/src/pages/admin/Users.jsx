@@ -12,8 +12,8 @@ const Users = () => {
     setLoading(true);
     try {
       const [custRes, partRes, areasRes] = await Promise.all([
-        api.get('/api/admin/users?role=user'),
-        api.get('/api/admin/users?role=partner'),
+        api.get('/admin/users?role=user'),
+        api.get('/admin/users?role=partner'),
         api.get('/areas'),
       ]);
       setCustomers(custRes.data);
@@ -46,7 +46,7 @@ const Users = () => {
   const createPartner = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/api/admin/create-partner', partnerForm);
+      await api.post('/admin/create-partner', partnerForm);
       setPartnerForm({ name: '', email: '', phone: '', password: '', areaId: '' });
       fetchData();
     } catch (err) {
