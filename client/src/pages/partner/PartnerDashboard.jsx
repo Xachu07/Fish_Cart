@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
-import { Phone, MapPin, Package, AlertCircle } from 'lucide-react';
+import { Package, AlertCircle } from 'lucide-react';
 
 const STATUS_PRIORITY = { 'Out for Delivery': 0, Packed: 1, Pending: 2, Delivered: 3 };
 
@@ -80,11 +80,6 @@ export default function PartnerDashboard() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to report issue');
     }
-  };
-
-  const openMaps = (address) => {
-    const q = encodeURIComponent([address].filter(Boolean).join(', '));
-    window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
   };
 
   if (loading) {
@@ -171,58 +166,18 @@ export default function PartnerDashboard() {
             Next delivery
           </div>
           <div style={{ padding: 16 }}>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
                 {nextDelivery.userId?.name || 'Customer'}
               </div>
-              <div style={{ fontSize: 14, color: '#475569', lineHeight: 1.4 }}>
+              <div style={{ fontSize: 14, color: '#475569', lineHeight: 1.5, marginBottom: 4 }}>
                 {nextDelivery.userId?.address || 'No address'}
               </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-              <a
-                href={`tel:${nextDelivery.userId?.phone || ''}`}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  padding: '14px 16px',
-                  background: '#0f766e',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 12,
-                  fontSize: 16,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <Phone size={20} /> Call Customer
-              </a>
-              <button
-                type="button"
-                onClick={() => openMaps(nextDelivery.userId?.address)}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  padding: '14px 16px',
-                  background: '#fff',
-                  color: '#0f766e',
-                  border: '2px solid #0f766e',
-                  borderRadius: 12,
-                  fontSize: 16,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                <MapPin size={20} /> Open in Maps
-              </button>
+              {nextDelivery.userId?.phone && (
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+                  Contact: {nextDelivery.userId.phone}
+                </div>
+              )}
             </div>
 
             <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 10, marginBottom: 12 }}>

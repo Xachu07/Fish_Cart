@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowUp } from 'lucide-react';
 
 export default function About() {
   const serviceAreas = [
@@ -17,7 +16,6 @@ export default function About() {
   ];
 
   const sectionStyle = { padding: '48px 16px', maxWidth: 1150, margin: '0 auto' };
-  const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--sea-50)', color: 'var(--text)' }}>
@@ -100,28 +98,6 @@ export default function About() {
 
       {/* centralized footer */}
       <div id="global-footer" />
-
-      {/* fixed back-to-top button for About page */}
-      <button
-        onClick={scrollTop}
-        aria-label="Back to top"
-        style={{
-          position: 'fixed',
-          right: 20,
-          bottom: 20,
-          background: 'var(--sea-600)',
-          borderRadius: 999,
-          padding: 12,
-          border: 'none',
-          zIndex: 1000,
-          boxShadow: '0 6px 18px rgba(0,0,0,0.18)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ArrowUp color="#fff" />
-      </button>
     </div>
   );
 }

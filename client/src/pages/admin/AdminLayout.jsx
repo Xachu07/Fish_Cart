@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Store, Users, MapPin, Truck, Menu, X, User } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Users, MapPin, Truck, Menu, X, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const AdminLayout = ({ children }) => {
@@ -12,7 +12,23 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [headerOpen, setHeaderOpen] = useState(false);
+  const headerDropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!headerOpen) return;
+    const handleClickOutside = (e) => {
+      if (headerDropdownRef.current && !headerDropdownRef.current.contains(e.target)) setHeaderOpen(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [headerOpen]);
+
+  const handleAdminLogout = () => {
+    setHeaderOpen(false);
+    logout();
+    navigate('/');
+  };
 
   const [isExpanded, setIsExpanded] = useState(false); // collapsed by default
   const [isMobile, setIsMobile] = useState(false);
@@ -68,16 +84,15 @@ const AdminLayout = ({ children }) => {
         <nav style={{ ...navStyle, paddingTop: 20 }}>
           {[
             { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-            { to: '/admin/products', label: 'Products', icon: Package },
+            { to: '/admin/products', label: 'Daily Catch', icon: Package },
             { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
             { to: '/admin/packing', label: 'Packing List', icon: ClipboardList },
-            { to: '/admin/shop-status', label: 'Shop Status', icon: Store },
             { to: '/admin/areas', label: 'Areas', icon: MapPin },
             { to: '/admin/users', label: 'Customers', icon: Users },
             { to: '/admin/delivery-partners', label: 'Delivery Partner', icon: Truck },
           ].map((item) => {
             const Icon = item.icon;
-            const active = location.pathname.startsWith(item.to);
+            const active = item.to === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(item.to);
               return (
                 <Link
                   key={item.to}
@@ -121,16 +136,15 @@ const AdminLayout = ({ children }) => {
             <nav style={{ marginTop: 12 }}>
               {[
                 { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-                { to: '/admin/products', label: 'Products', icon: Package },
+                { to: '/admin/products', label: 'Daily Catch', icon: Package },
                 { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
                 { to: '/admin/packing', label: 'Packing List', icon: ClipboardList },
-                { to: '/admin/shop-status', label: 'Shop Status', icon: Store },
                 { to: '/admin/areas', label: 'Areas', icon: MapPin },
                 { to: '/admin/users', label: 'Customers', icon: Users },
                 { to: '/admin/delivery-partners', label: 'Delivery Partner', icon: Truck },
               ].map((item) => {
+                const active = item.to === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(item.to);
                 const Icon = item.icon;
-                const active = location.pathname.startsWith(item.to);
                 return (
                   <Link
                     key={item.to}
@@ -169,7 +183,7 @@ const AdminLayout = ({ children }) => {
           paddingRight: 24,
         }}
       >
-        {/* TOP HEADER - same style as customer page header */}
+        {/* TOP HEADER - consistent with customer header */}
         <header
           style={{
             background: '#ffffff',
@@ -186,25 +200,112 @@ const AdminLayout = ({ children }) => {
               <Link to="/admin" style={{ textDecoration: 'none' }}>
                 <span style={{ fontFamily: 'Poppins, Inter, system-ui, sans-serif', fontWeight: 800, color: 'var(--sea-600)', fontSize: 18 }}>Fish Cart</span>
               </Link>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginLeft: 4 }}>Admin</span>
             </div>
 
             <div style={{ flex: 1 }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setHeaderOpen((s) => !s)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 20, border: '1px solid #e5e7eb', padding: '6px 10px', background: '#fff', cursor: 'pointer' }}
+            <div ref={headerDropdownRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setHeaderOpen((s) => !s); }}
+                aria-expanded={headerOpen}
+                aria-haspopup="true"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  borderRadius: 10,
+                  border: '1px solid #e2e8f0',
+                  padding: '8px 14px',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <User size={18} style={{ color: 'var(--sea-600)', flexShrink: 0 }} />
+                <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</span>
+              </button>
+              {headerOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '100%',
+                    marginTop: 8,
+                    minWidth: 200,
+                    borderRadius: 12,
+                    background: '#fff',
+                    boxShadow: '0 10px 40px rgba(15,23,42,0.12)',
+                    border: '1px solid #e5e7eb',
+                    overflow: 'hidden',
+                    zIndex: 70,
+                  }}
+                  role="menu"
                 >
-                  <User style={{ width: 16, height: 16 }} />
-                  <span style={{ display: 'inline-block', minWidth: 60 }}>{user.name}</span>
-                </button>
-                {headerOpen && (
-                  <div style={{ position: 'absolute', right: 0, marginTop: 8, width: 180, borderRadius: 8, background: '#fff', boxShadow: '0 6px 18px rgba(0,0,0,0.08)', zIndex: 70 }}>
-                    <Link to="/admin/profile" onClick={() => setHeaderOpen(false)} style={{ display: 'block', padding: '8px 12px', color: '#374151', textDecoration: 'none' }}>Profile</Link>
-                    <button onClick={() => { setHeaderOpen(false); logout(); navigate('/'); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer' }}>Logout</button>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Account</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginTop: 2 }}>{user.name}</div>
+                    {user.email && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{user.email}</div>}
                   </div>
-                )}
-              </div>
+                  <Link
+                    to="/admin/profile"
+                    onClick={() => setHeaderOpen(false)}
+                    role="menuitem"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: '#374151',
+                      textAlign: 'left',
+                      fontFamily: 'inherit',
+                      textDecoration: 'none',
+                      boxSizing: 'border-box',
+                      borderBottom: '1px solid #f1f5f9',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.color = 'var(--sea-600)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#374151'; }}
+                  >
+                    <User size={18} style={{ flexShrink: 0, opacity: 0.9 }} />
+                    Profile
+                  </Link>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleAdminLogout}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: '#374151',
+                      textAlign: 'left',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#b91c1c'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#374151'; }}
+                  >
+                    <LogOut size={18} style={{ flexShrink: 0, opacity: 0.9 }} />
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

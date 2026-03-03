@@ -1,9 +1,6 @@
-import { X, Facebook, Instagram, Linkedin, ArrowUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Footer() {
-  const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-
   return (
     <footer style={{ background: 'linear-gradient(90deg,#042a3a 0%, #07344a 50%, #082e45 100%)', color: '#e6eef6', position: 'relative' }}>
       <div style={{ maxWidth: 1150, margin: '0 auto', padding: '48px 20px', display: 'flex', gap: 24, alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -48,31 +45,8 @@ export default function Footer() {
         <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
           <div>© 2026 Fish Cart. All Rights Reserved.</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* back-to-top button moved to fixed corner */}
-        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} />
       </div>
-
-      {/* fixed corner back-to-top button */}
-      <button
-        onClick={scrollTop}
-        aria-label="Back to top"
-        style={{
-          position: 'fixed',
-          right: 20,
-          bottom: 20,
-          background: '#0ea5a0',
-          borderRadius: 999,
-          padding: 12,
-          border: 'none',
-          zIndex: 1000,
-          boxShadow: '0 6px 18px rgba(0,0,0,0.18)',
-        }}
-      >
-        <ArrowUp color="#fff" />
-      </button>
-
-      {/* decorative diamond removed */}
     </footer>
   );
 }

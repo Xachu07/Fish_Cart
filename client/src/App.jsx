@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
+import ScrollToTop from './components/ScrollToTop';
 import { Toaster } from 'react-hot-toast';
 import Footer from './components/layout/Footer';
 import Home from './pages/Home';
@@ -17,7 +18,6 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/Products';
 import AdminOrders from './pages/admin/AdminOrders';
 import PackingList from './pages/admin/PackingList';
-import ShopStatus from './pages/admin/ShopStatus';
 import AdminAreas from './pages/admin/Areas';
 import DeliveryPartners from './pages/admin/DeliveryPartners';
 import CustomerManagement from './pages/admin/CustomerManagement';
@@ -76,6 +76,7 @@ function AppContent() {
     <>
       <Navbar />
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomeRouter />} />
         <Route path="/daily-catch" element={<DailyCatchPage />} />
@@ -187,16 +188,6 @@ function AppContent() {
           }
         />
         <Route
-          path="/admin/shop-status"
-          element={
-            <AdminRoute>
-              <AdminLayout>
-                <ShopStatus />
-              </AdminLayout>
-            </AdminRoute>
-          }
-        />
-        <Route
           path="/admin/areas"
           element={
             <AdminRoute>
@@ -232,6 +223,16 @@ function AppContent() {
             <PartnerRoute>
               <PartnerLayout>
                 <PartnerDashboard />
+              </PartnerLayout>
+            </PartnerRoute>
+          }
+        />
+        <Route
+          path="/partner/profile"
+          element={
+            <PartnerRoute>
+              <PartnerLayout>
+                <Profile />
               </PartnerLayout>
             </PartnerRoute>
           }

@@ -171,7 +171,7 @@ const Products = () => {
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', gap: 16 }}>
         <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0 }}>Products</h2>
+          <h2 style={{ margin: 0 }}>Daily Catch</h2>
         </div>
         <button
           onClick={openAddModal}

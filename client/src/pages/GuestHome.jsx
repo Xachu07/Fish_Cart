@@ -32,7 +32,7 @@ export default function GuestHome() {
               </p>
               <div style={{ marginTop: 18, display: 'flex', gap: 12 }}>
                 <button onClick={() => navigate('/register')} style={{ background: 'var(--accent)', color: '#fff', padding: '10px 18px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>
-                  View Today's Catch
+                  Join us
                 </button>
                 <button onClick={() => navigate('/about')} style={{ background: 'transparent', color: '#fff', padding: '10px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer' }}>
                   Learn More

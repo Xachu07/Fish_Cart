@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import api from '../utils/api';
@@ -53,7 +54,7 @@ export default function Checkout() {
       return;
     }
     if (!delivery.phone?.trim()) {
-      toast.error('Please enter phone number');
+      toast.error('Please enter a valid mobile number');
       return;
     }
     if (!delivery.address?.trim()) {
@@ -134,7 +135,7 @@ export default function Checkout() {
             <div style={{ fontSize: 14, color: '#0f172a' }}>{delivery.name || '—'}</div>
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Phone</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Mobile Number</div>
             <div style={{ fontSize: 14, color: '#0f172a' }}>{delivery.phone || '—'}</div>
           </div>
           <div>
@@ -185,12 +186,29 @@ export default function Checkout() {
           <input type="radio" name="pay" checked={paymentMethod === 'COD'} onChange={() => setPaymentMethod('COD')} />
           <span style={{ fontWeight: 600 }}>Cash on Delivery (COD)</span>
         </label>
-        <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginLeft: 28 }}>Pay when you receive your order. Default option.</p>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', cursor: 'pointer', marginTop: 8 }}>
+        <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginLeft: 28 }}>Pay when you receive your order.</p>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', cursor: 'pointer', marginTop: 12 }}>
           <input type="radio" name="pay" checked={paymentMethod === 'UPI'} onChange={() => setPaymentMethod('UPI')} />
-          <span style={{ fontWeight: 600 }}>Pay via UPI (prepay)</span>
+          <span style={{ fontWeight: 600 }}>Prepay – Scan QR (demo)</span>
         </label>
-        <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginLeft: 28 }}>UPI / QR option can be added here.</p>
+        <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginLeft: 28 }}>Scan the QR with your phone. For this project, payment is simulated.</p>
+
+        {paymentMethod === 'UPI' && (
+          <div style={{ marginTop: 20, padding: 20, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', textAlign: 'center' }}>
+            <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#0f172a' }}>Scan to pay ₹{grandTotal.toLocaleString('en-IN')}</p>
+            <div style={{ display: 'inline-block', padding: 16, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+              <QRCodeSVG
+                value={`FISHCART-PREPAY|Amount:₹${grandTotal}|Order total (demo - no real payment)`}
+                size={180}
+                level="M"
+                includeMargin={false}
+              />
+            </div>
+            <p style={{ margin: '12px 0 0', fontSize: 12, color: '#64748b', maxWidth: 280, marginLeft: 'auto', marginRight: 'auto' }}>
+              Use your phone camera or any QR scanner to scan. In this project, no real payment is made — click &quot;I&apos;ve paid – Place order&quot; below to mark as prepaid and place the order.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* 5. Place Order */}
@@ -213,7 +231,11 @@ export default function Checkout() {
           cursor: placing || !shopOpen ? 'not-allowed' : 'pointer',
         }}
       >
-        {placing ? 'Placing order…' : 'Place order'}
+        {placing
+          ? 'Placing order…'
+          : paymentMethod === 'UPI'
+            ? "I've paid – Place order"
+            : 'Place order'}
       </button>
       <p style={{ textAlign: 'center', marginTop: 12 }}>
         <Link to="/cart" style={{ fontSize: 14, color: 'var(--sea-600)' }}>← Back to cart</Link>

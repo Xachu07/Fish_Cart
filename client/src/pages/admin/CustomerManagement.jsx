@@ -86,7 +86,7 @@ const CustomerManagement = () => {
           <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input
             type="text"
-            placeholder="Search by name, phone or email..."
+            placeholder="Search by name, mobile number or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -305,7 +305,7 @@ const CustomerManagement = () => {
                 {[
                   { label: 'Name', value: detailCustomer.name || '—' },
                   { label: 'Email', value: detailCustomer.email || '—' },
-                  { label: 'Phone', value: detailCustomer.phone || '—' },
+                  { label: 'Mobile Number', value: detailCustomer.phone || '—' },
                   { label: 'Delivery Area', value: detailCustomer.areaOfService?.name || 'Not Set' },
                   ...(detailCustomer.address ? [{ label: 'Address', value: detailCustomer.address }] : []),
                 ].map(({ label, value }) => (

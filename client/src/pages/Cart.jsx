@@ -18,20 +18,24 @@ const Cart = () => {
 
   if (cart.length === 0) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h2>Your Cart is Empty</h2>
+      <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--sea-50)', minHeight: '50vh' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>Your cart is empty</h2>
+        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>Add something from the Daily Catch to get started.</p>
         <button
+          type="button"
           onClick={() => navigate('/')}
           style={{
-            padding: '10px 20px',
-            backgroundColor: '#007bff',
-            color: 'white',
+            padding: '12px 24px',
+            backgroundColor: 'var(--sea-600)',
+            color: '#fff',
             border: 'none',
-            borderRadius: '4px',
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
             cursor: 'pointer',
           }}
         >
-          Continue Shopping
+          Continue shopping
         </button>
       </div>
     );
@@ -94,6 +98,25 @@ const Cart = () => {
           <p style={{ color: '#b91c1c', textAlign: 'right', fontSize: 14 }}>Shop is currently closed. Orders accepted 5:00 PM – 12:00 AM.</p>
         )}
         <button
+          type="button"
+          onClick={() => navigate('/')}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: 'transparent',
+            color: 'var(--sea-600)',
+            border: '2px solid var(--sea-600)',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 600,
+            marginTop: '8px',
+          }}
+        >
+          Continue shopping
+        </button>
+        <button
+          type="button"
           onClick={goToCheckout}
           style={{
             width: '100%',
@@ -101,9 +124,9 @@ const Cart = () => {
             backgroundColor: 'var(--sea-600)',
             color: 'white',
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: 8,
             cursor: 'pointer',
-            fontSize: '16px',
+            fontSize: 16,
             fontWeight: 700,
             marginTop: '10px',
           }}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
+import PasswordInput from '../../components/PasswordInput';
 
 const Users = () => {
   const [customers, setCustomers] = useState([]);
@@ -74,7 +75,7 @@ const Users = () => {
                   <tr>
                     <th style={{ padding: 8, textAlign: 'left' }}>Name</th>
                     <th style={{ padding: 8, textAlign: 'left' }}>Email</th>
-                    <th style={{ padding: 8, textAlign: 'left' }}>Phone</th>
+                    <th style={{ padding: 8, textAlign: 'left' }}>Mobile Number</th>
                     <th style={{ padding: 8, textAlign: 'left' }}>Area</th>
                     <th style={{ padding: 8, textAlign: 'left' }}>Actions</th>
                   </tr>
@@ -108,7 +109,7 @@ const Users = () => {
                       <tr>
                         <th style={{ padding: 8, textAlign: 'left' }}>Name</th>
                         <th style={{ padding: 8, textAlign: 'left' }}>Email</th>
-                        <th style={{ padding: 8, textAlign: 'left' }}>Phone</th>
+                        <th style={{ padding: 8, textAlign: 'left' }}>Mobile Number</th>
                         <th style={{ padding: 8, textAlign: 'left' }}>Area</th>
                         <th style={{ padding: 8, textAlign: 'left' }}>Actions</th>
                       </tr>
@@ -138,8 +139,8 @@ const Users = () => {
                   <form onSubmit={createPartner} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <input name="name" value={partnerForm.name} onChange={handlePartnerChange} placeholder="Full name" required style={{ padding: 8 }} />
                     <input name="email" value={partnerForm.email} onChange={handlePartnerChange} placeholder="email@example.com" required style={{ padding: 8 }} />
-                    <input name="phone" value={partnerForm.phone} onChange={handlePartnerChange} placeholder="Phone" required style={{ padding: 8 }} />
-                    <input name="password" value={partnerForm.password} onChange={handlePartnerChange} placeholder="Temp password" required style={{ padding: 8 }} />
+                    <input name="phone" value={partnerForm.phone} onChange={handlePartnerChange} placeholder="Mobile Number" required style={{ padding: 8 }} />
+                    <PasswordInput name="password" value={partnerForm.password} onChange={handlePartnerChange} placeholder="Temp password" required style={{ padding: 8 }} />
                     <select name="areaId" value={partnerForm.areaId} onChange={handlePartnerChange} style={{ padding: 8 }}>
                       <option value="">Assign area</option>
                       {areas.map((a) => <option key={a._id} value={a._id}>{a.name}</option>)}

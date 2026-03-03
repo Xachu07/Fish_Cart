@@ -23,6 +23,7 @@ router.get('/users', auth, adminAuth, async (req, res) => {
 });
 
 // GET /api/admin/partners/overview – partners with order stats for delivery dashboard
+// Query: date=YYYY-MM-DD (default: today UTC). Stats are always for that single day; no orders = 0.
 router.get('/partners/overview', auth, adminAuth, async (req, res) => {
   try {
     const Order = require('../models/Order');
@@ -30,7 +31,18 @@ router.get('/partners/overview', auth, adminAuth, async (req, res) => {
       .select('-password')
       .populate('areaOfService', 'name')
       .sort({ name: 1 });
-    const orders = await Order.find({ assignedPartnerId: { $exists: true, $ne: null } }).lean();
+    let dateStr = (req.query.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const now = new Date();
+      dateStr = now.getUTCFullYear() + '-' + String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + String(now.getUTCDate()).padStart(2, '0');
+    }
+    const start = new Date(dateStr + 'T00:00:00.000Z');
+    const end = new Date(dateStr + 'T23:59:59.999Z');
+    const orderQuery = {
+      assignedPartnerId: { $exists: true, $ne: null },
+      createdAt: { $gte: start, $lte: end },
+    };
+    const orders = await Order.find(orderQuery).lean();
     const byPartner = {};
     orders.forEach((o) => {
       const id = o.assignedPartnerId?.toString?.() || o.assignedPartnerId;
@@ -80,7 +92,7 @@ router.post('/create-partner', auth, adminAuth, async (req, res) => {
     }
     const digitsOnly = (phone || '').replace(/\D/g, '');
     if (digitsOnly.length !== 10 || !/^[6-9]/.test(digitsOnly)) {
-      return res.status(400).json({ message: 'Phone must be a 10-digit number starting with 6-9' });
+      return res.status(400).json({ message: 'Please enter a valid 10-digit mobile number.' });
     }
     if (password.length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
@@ -121,17 +133,31 @@ router.put('/users/:id/block', auth, adminAuth, async (req, res) => {
   }
 });
 
-// PUT /api/admin/users/:id (edit user)
+// PUT /api/admin/users/:id (edit user – name, email, phone, address, area)
 router.put('/users/:id', auth, adminAuth, async (req, res) => {
   try {
-    const { name, phone, address, areaId } = req.body;
+    const { name, email, phone, address, areaId } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    if (name && !/^[A-Za-z\s]+$/.test(name)) return res.status(400).json({ message: 'Invalid name' });
-    if (phone && !/^[6-9]\d{9}$/.test(phone)) return res.status(400).json({ message: 'Invalid phone' });
-    if (name) user.name = name;
-    if (phone !== undefined) user.phone = phone;
-    if (address !== undefined) user.address = address;
+    if (name !== undefined) {
+      const trimmed = (name || '').trim();
+      if (!/^[A-Za-z\s.\-]+$/.test(trimmed) || trimmed.length < 2) return res.status(400).json({ message: 'Please enter a valid full name' });
+      user.name = trimmed;
+    }
+    if (email !== undefined) {
+      const normalized = (email || '').toLowerCase().trim();
+      const atIdx = normalized.indexOf('@');
+      if (atIdx < 1 || !normalized.includes('.', atIdx + 1) || normalized.length < 5) return res.status(400).json({ message: 'Please enter a valid email address' });
+      const existing = await User.findOne({ email: normalized, _id: { $ne: req.params.id } });
+      if (existing) return res.status(400).json({ message: 'An account with this email already exists' });
+      user.email = normalized;
+    }
+    if (phone !== undefined) {
+      const digits = (phone || '').replace(/\D/g, '');
+      if (digits && (digits.length !== 10 || !/^[6-9]/.test(digits))) return res.status(400).json({ message: 'Please enter a valid 10-digit mobile number.' });
+      user.phone = digits || (phone || '').trim();
+    }
+    if (address !== undefined) user.address = (address || '').trim();
     if (areaId !== undefined) user.areaOfService = areaId || null;
     await user.save();
     res.json({ message: 'User updated' });

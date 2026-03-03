@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
+import PasswordInput from '../components/PasswordInput';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -54,7 +55,7 @@ const Register = () => {
       return;
     }
     if (!/^[A-Za-z\s.\-]+$/.test(name)) {
-      setError('Name can only contain letters, spaces, dots and hyphens');
+      setError('Please enter a valid full name');
       setLoading(false);
       return;
     }
@@ -65,7 +66,7 @@ const Register = () => {
       return;
     }
     if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
-      setError('Phone must be a 10-digit number starting with 6-9');
+      setError('Please enter a valid 10-digit mobile number.');
       setLoading(false);
       return;
     }
@@ -142,7 +143,7 @@ const Register = () => {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Phone</label>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Mobile Number</label>
                 <input
                   type="tel"
                   name="phone"
@@ -186,8 +187,7 @@ const Register = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -197,8 +197,7 @@ const Register = () => {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Confirm Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}

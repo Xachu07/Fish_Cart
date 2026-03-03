@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
     const digitsOnly = (phone || '').replace(/\D/g, '');
     const phoneOk = digitsOnly.length === 10 && /^[6-9]/.test(digitsOnly);
     if (phone && !phoneOk) {
-      return res.status(400).json({ message: 'Phone must be a 10-digit number starting with 6-9' });
+      return res.status(400).json({ message: 'Please enter a valid 10-digit mobile number.' });
     }
     const phoneToSave = phoneOk ? digitsOnly : (phone || '').trim();
 

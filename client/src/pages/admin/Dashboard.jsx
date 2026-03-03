@@ -1,168 +1,354 @@
-import React, { useEffect, useState, lazy } from 'react';
-import { Package, ShoppingCart, Clock, Store } from 'lucide-react';
-const OrdersChart = lazy(() => import('../../components/admin/OrdersChart'));
-import RecentOrders from '../../components/admin/RecentOrders';
-import TodaysCatch from '../../components/admin/TodaysCatch';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ShoppingCart, Package, Banknote, IndianRupee, Fish, FileText, Truck, AlertTriangle, Store } from 'lucide-react';
 import api from '../../utils/api';
-import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-hot-toast';
 
-const AdminDashboard = () => {
-  const { user } = useAuth();
+const LOW_STOCK_THRESHOLD = 5;
+
+export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
-  const [ordersList, setOrdersList] = useState([]);
-  const [stats, setStats] = useState({
-    todaysOrders: 0,
-    revenue: 0,
-    pendingDeliveries: 0,
-    lowStockAlerts: 0,
-  });
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [shopOpen, setShopOpen] = useState(false);
+  const [shopUpdating, setShopUpdating] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const [ordersRes, productsRes, shopRes] = await Promise.all([
+        api.get('/orders/admin'),
+        api.get('/products'),
+        api.get('/shop/status').catch(() => ({ data: { isOpen: false } })),
+      ]);
+      setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);
+      setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+      setShopOpen(!!shopRes?.data?.isOpen);
+    } catch (err) {
+      console.error('Dashboard fetch error', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
-    const fetchStats = async () => {
-      try {
-        const [productsRes, ordersRes, statusRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/orders/admin'),
-          api.get('/shop/status'),
-        ]);
-
-        const products = productsRes.data || [];
-        const orders = ordersRes.data || [];
-
-        // today's orders (by createdAt date)
-        const today = new Date();
-        const isSameDay = (d1, d2) =>
-          d1.getFullYear() === d2.getFullYear() &&
-          d1.getMonth() === d2.getMonth() &&
-          d1.getDate() === d2.getDate();
-        const todaysOrders = orders.filter((o) => {
-          const created = new Date(o.createdAt || o.createdAt);
-          return isSameDay(created, today);
-        }).length;
-
-        // revenue: sum order.totalAmount
-        const revenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-
-        // pending deliveries: statuses not Delivered or Cancelled
-        const pendingDeliveries = orders.filter((o) => !['Delivered', 'Cancelled'].includes(o.status)).length;
-
-        // low stock alerts: products with stockAvailable <= 10
-        const lowStockAlerts = products.filter((p) => typeof p.stockAvailable === 'number' && p.stockAvailable <= 10).length;
-
-        if (mounted) {
-          setOrdersList(orders);
-          setStats({
-            todaysOrders,
-            revenue,
-            pendingDeliveries,
-            lowStockAlerts,
-          });
-        }
-      } catch (err) {
-        console.error('Error loading dashboard stats', err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    fetchStats();
-    return () => {
-      mounted = false;
-    };
+    fetchData();
   }, []);
 
+  const toggleShopStatus = async () => {
+    setShopUpdating(true);
+    try {
+      const res = await api.put('/shop/status', { isOpen: !shopOpen });
+      setShopOpen(!!res.data?.isOpen);
+      toast.success(res.data?.isOpen ? 'Shop is now OPEN' : 'Shop is now CLOSED');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update shop status');
+    } finally {
+      setShopUpdating(false);
+    }
+  };
+
+  const isSameDay = (d1, d2) =>
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+
+  const today = new Date();
+  const todaysOrders = orders.filter((o) => isSameDay(new Date(o.createdAt), today));
+  const todaysOrderCount = todaysOrders.length;
+  const pendingDeliveries = orders.filter((o) => o.status !== 'Delivered').length;
+  const cashToCollect = orders
+    .filter((o) => o.status !== 'Delivered' && o.paymentMethod === 'COD')
+    .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  const totalRevenue = todaysOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+
+  const lowStockProducts = products.filter(
+    (p) => p.isActive !== false && (Number(p.stockQuantity) <= LOW_STOCK_THRESHOLD || p.status === 'Sold Out')
+  );
+  const recentOrders = orders.slice(0, 5);
+
+  const cardStyle = {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 12,
+    padding: 20,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+  };
+  const sectionStyle = {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 12,
+    padding: 20,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+  };
+
   if (loading) {
-    return <div className="p-6 text-center">Loading...</div>;
+    return (
+      <div style={{ padding: 48, textAlign: 'center', color: '#64748b', fontSize: 14 }}>Loading…</div>
+    );
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-        <p className="text-slate-500 mt-1">Here is what is happening with your store today.</p>
-      </div>
+    <div style={{ padding: '24px 16px', maxWidth: 1200, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Admin Dashboard</h1>
+      <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>Here’s what’s happening with your store today.</p>
 
-      {/* STAT CARDS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Card 1: Today's Orders */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">Today's Orders</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.todaysOrders}</p>
-          </div>
-          <div className="bg-blue-50 p-3 rounded-lg text-blue-600">
-            <ShoppingCart size={24} />
-          </div>
-        </div>
-
-        {/* Card 2: Revenue */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">Revenue</p>
-            <p className="text-2xl font-bold text-slate-800">
-              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(stats.revenue)}
-            </p>
-          </div>
-          <div className="bg-green-50 p-3 rounded-lg text-green-600">
-            <Package size={24} />
-          </div>
-        </div>
-
-        {/* Card 3: Pending Deliveries */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">Pending Deliveries</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.pendingDeliveries}</p>
-          </div>
-          <div className="bg-amber-50 p-3 rounded-lg text-amber-600">
-            <Clock size={24} />
-          </div>
-        </div>
-
-        {/* Card 4: Low Stock Alerts */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">Low Stock Alerts</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.lowStockAlerts}</p>
-          </div>
-          <div className="bg-indigo-50 p-3 rounded-lg text-indigo-600">
-            <Store size={24} />
-          </div>
-        </div>
-
-      </div>
-      {/* Chart */}
-      <div className="mt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            {/* Orders chart */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-              <div className="mb-4">
-                <h3 className="text-sm font-medium text-slate-700">Orders Overview</h3>
-              </div>
-              {/* Chart component */}
+      {/* 1. Today's Pulse – 4 cards */}
+      <section style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Today’s Pulse</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
-                {/* Lazy load chart to avoid SSR issues */}
-                <React.Suspense fallback={<div>Loading chart...</div>}>
-                  <OrdersChart orders={ordersList} />
-                </React.Suspense>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Today’s Orders</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>{todaysOrderCount}</div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(15,118,110,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShoppingCart size={20} style={{ color: 'var(--sea-600)' }} />
               </div>
             </div>
           </div>
-
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-              <TodaysCatch />
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Pending Deliveries</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>{pendingDeliveries}</div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(245,158,11,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Package size={20} style={{ color: '#b45309' }} />
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-              <RecentOrders orders={ordersList} onRefresh={() => window.location.reload()} />
+          </div>
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Cash to Collect</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>₹{cashToCollect.toLocaleString('en-IN')}</div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Banknote size={20} style={{ color: '#16a34a' }} />
+              </div>
+            </div>
+          </div>
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Total Revenue</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>₹{totalRevenue.toLocaleString('en-IN')}</div>
+              </div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(15,118,110,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IndianRupee size={20} style={{ color: 'var(--sea-600)' }} />
+              </div>
             </div>
           </div>
         </div>
+      </section>
+
+      {/* 2. Quick Action Buttons */}
+      <section style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Quick Actions</h2>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <Link
+            to="/admin/products"
+            style={{
+              flex: '1 1 200px',
+              ...sectionStyle,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              textDecoration: 'none',
+              color: '#0f172a',
+              cursor: 'pointer',
+              minHeight: 72,
+            }}
+          >
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(15,118,110,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Fish size={24} style={{ color: 'var(--sea-600)' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>Update Daily Catch</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Change fish prices and stock</div>
+            </div>
+          </Link>
+          <Link
+            to="/admin/packing"
+            style={{
+              flex: '1 1 200px',
+              ...sectionStyle,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              textDecoration: 'none',
+              color: '#0f172a',
+              cursor: 'pointer',
+              minHeight: 72,
+            }}
+          >
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(15,118,110,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={24} style={{ color: 'var(--sea-600)' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>Print Packing List</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Generate cutting list for kitchen</div>
+            </div>
+          </Link>
+          <Link
+            to="/admin/orders"
+            style={{
+              flex: '1 1 200px',
+              ...sectionStyle,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              textDecoration: 'none',
+              color: '#0f172a',
+              cursor: 'pointer',
+              minHeight: 72,
+            }}
+          >
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(15,118,110,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Truck size={24} style={{ color: 'var(--sea-600)' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>Assign Drivers</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Driver routing and orders</div>
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      {/* Shop Status */}
+      <section style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Shop Status</h2>
+        <div
+          style={{
+            ...sectionStyle,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+            background: shopOpen ? '#f0fdf4' : '#fef2f2',
+            borderColor: shopOpen ? '#bbf7d0' : '#fecaca',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: shopOpen ? 'rgba(34,197,94,0.2)' : 'rgba(185,28,28,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Store size={24} style={{ color: shopOpen ? '#16a34a' : '#b91c1c' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: shopOpen ? '#166534' : '#b91c1c' }}>
+                Shop is {shopOpen ? 'OPEN' : 'CLOSED'}
+              </div>
+              <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                {shopOpen ? 'Customers can place orders.' : 'Ordering is disabled. Open shop to accept orders (5 PM – 12 AM).'}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleShopStatus}
+            disabled={shopUpdating}
+            style={{
+              padding: '10px 20px',
+              borderRadius: 8,
+              border: 'none',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: shopUpdating ? 'not-allowed' : 'pointer',
+              background: shopOpen ? '#dc2626' : '#16a34a',
+              color: '#fff',
+            }}
+          >
+            {shopUpdating ? 'Updating…' : shopOpen ? 'Close shop' : 'Open shop'}
+          </button>
+        </div>
+      </section>
+
+      {/* 3. Low Stock Alerts + 4. Recent Orders – side by side */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+        {/* Low Stock Alerts */}
+        <section style={sectionStyle}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={18} style={{ color: '#b45309' }} />
+            Low Stock Alerts
+          </h2>
+          {lowStockProducts.length === 0 ? (
+            <p style={{ fontSize: 14, color: '#64748b' }}>No low stock items.</p>
+          ) : (
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+              {lowStockProducts.map((p) => (
+                <li
+                  key={p._id}
+                  style={{
+                    padding: '10px 0',
+                    borderBottom: '1px solid #f1f5f9',
+                    fontSize: 14,
+                    color: p.status === 'Sold Out' ? '#b91c1c' : '#0f172a',
+                  }}
+                >
+                  {p.fishName}
+                  {p.status === 'Sold Out' ? (
+                    <span style={{ fontWeight: 600, marginLeft: 6 }}>— Out of Stock</span>
+                  ) : (
+                    <span style={{ color: '#b45309', marginLeft: 6 }}>— Only {p.stockQuantity} kg left</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Recent Orders – mini table */}
+        <section style={sectionStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Recent Orders</h2>
+            <Link to="/admin/orders" style={{ fontSize: 13, fontWeight: 600, color: 'var(--sea-600)', textDecoration: 'none' }}>View all</Link>
+          </div>
+          {recentOrders.length === 0 ? (
+            <p style={{ fontSize: 14, color: '#64748b' }}>No orders yet.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                    <th style={{ padding: '8px 0', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>Order</th>
+                    <th style={{ padding: '8px 0', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>Customer</th>
+                    <th style={{ padding: '8px 0', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>Items</th>
+                    <th style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>Amount</th>
+                    <th style={{ padding: '8px 0', textAlign: 'left', fontWeight: 600, color: '#64748b' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentOrders.map((o) => (
+                    <tr key={o._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '10px 0', color: '#0f172a', fontFamily: 'monospace', fontSize: 12 }}>#{String(o._id).slice(-6).toUpperCase()}</td>
+                      <td style={{ padding: '10px 0', color: '#0f172a' }}>{o.userId?.name || '—'}</td>
+                      <td style={{ padding: '10px 0', color: '#64748b', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {(o.items || []).map((i) => `${i.fishName} (${i.qty}kg)`).join(', ')}
+                      </td>
+                      <td style={{ padding: '10px 0', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>₹{Number(o.totalAmount || 0).toLocaleString('en-IN')}</td>
+                      <td style={{ padding: '10px 0' }}>
+                        <span
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            background: o.status === 'Delivered' ? '#dcfce7' : o.status === 'Out for Delivery' ? '#dbeafe' : '#fef3c7',
+                            color: o.status === 'Delivered' ? '#166534' : o.status === 'Out for Delivery' ? '#1e40af' : '#92400e',
+                          }}
+                        >
+                          {o.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
-};
-
-export default AdminDashboard;
+}
