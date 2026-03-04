@@ -1,11 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+
+const DATE_FILTERS = [
+  { value: 'all', label: 'All time' },
+  { value: '7', label: 'Last 7 Days' },
+  { value: '30', label: 'Last 30 Days' },
+  { value: 'month', label: 'This Month' },
+];
 
 const Orders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
 
   useEffect(() => {
     if (user) {
@@ -24,6 +34,46 @@ const Orders = () => {
     }
   };
 
+  const getOrderDisplayId = (order) => {
+    if (order.displayId) return order.displayId;
+    return '#' + (order._id ? String(order._id).slice(-8).toUpperCase() : '');
+  };
+
+  const orderMatchesSearch = (order, term) => {
+    if (!term || !term.trim()) return true;
+    const t = term.trim().toLowerCase();
+    const displayId = getOrderDisplayId(order);
+    if (displayId.toLowerCase().replace('#', '').includes(t)) return true;
+    if (order.items && order.items.some((item) => (item.fishName || '').toLowerCase().includes(t))) return true;
+    return false;
+  };
+
+  const orderMatchesDate = (order, filter) => {
+    if (!filter || filter === 'all') return true;
+    const d = new Date(order.createdAt);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (filter === '7') {
+      const from = new Date(todayStart);
+      from.setDate(from.getDate() - 7);
+      return d >= from && d <= now;
+    }
+    if (filter === '30') {
+      const from = new Date(todayStart);
+      from.setDate(from.getDate() - 30);
+      return d >= from && d <= now;
+    }
+    if (filter === 'month') {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      return d >= monthStart && d <= now;
+    }
+    return true;
+  };
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => orderMatchesSearch(order, searchTerm) && orderMatchesDate(order, dateFilter));
+  }, [orders, searchTerm, dateFilter]);
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pending':
@@ -39,18 +89,88 @@ const Orders = () => {
     }
   };
 
+  const formatOrderDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = d.toLocaleString('en', { month: 'short' });
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  const getPaymentLabel = (order) => order.paymentMethod === 'PREPAID' ? 'Prepaid' : 'COD';
+
   if (loading) {
     return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
   }
 
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
-      <h2>My Orders</h2>
+      <h2 style={{ marginBottom: 20 }}>My Orders</h2>
+
+      {orders.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 20 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flex: '1 1 240px',
+              minWidth: 0,
+              maxWidth: 360,
+              padding: '10px 14px',
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: 10,
+            }}
+          >
+            <Search size={20} style={{ color: '#64748b', flexShrink: 0 }} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by Order ID or fish name..."
+              style={{
+                flex: 1,
+                minWidth: 0,
+                border: 'none',
+                outline: 'none',
+                fontSize: 14,
+                background: 'transparent',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label htmlFor="orders-date-filter" style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>Filter by date:</label>
+            <select
+              id="orders-date-filter"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              style={{
+                padding: '10px 14px',
+                borderRadius: 10,
+                border: '1px solid #e5e7eb',
+                background: '#fff',
+                fontSize: 14,
+                fontWeight: 500,
+                color: '#0f172a',
+                cursor: 'pointer',
+              }}
+            >
+              {DATE_FILTERS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {orders.length === 0 ? (
         <p>No orders yet. Start shopping to place your first order!</p>
+      ) : filteredOrders.length === 0 ? (
+        <p style={{ color: '#64748b' }}>No orders match your search or date filter.</p>
       ) : (
         <div>
-          {orders.map((order) => (
+          {filteredOrders.map((order) => (
             <div
               key={order._id}
               style={{
@@ -69,7 +189,7 @@ const Orders = () => {
                 }}
               >
                 <div>
-                  <strong>Order ID:</strong> {order._id.slice(-8).toUpperCase()}
+                  <strong>Order ID:</strong> {getOrderDisplayId(order)}
                 </div>
                 <div>
                   <span
@@ -87,11 +207,11 @@ const Orders = () => {
               </div>
               <div>
                 <strong>Ordered on:</strong>{' '}
-                {new Date(order.createdAt).toLocaleDateString()}
+                {formatOrderDate(order.createdAt)}
               </div>
               {order.assignedPartnerId && (
                 <div style={{ marginTop: '10px' }}>
-                  <strong>Delivery Partner:</strong> {order.assignedPartnerId.name}
+                  <strong>Assigned Driver:</strong> {order.assignedPartnerId.name}
                   {order.assignedPartnerId.phone && ` - ${order.assignedPartnerId.phone}`}
                 </div>
               )}
@@ -106,7 +226,7 @@ const Orders = () => {
                 </ul>
               </div>
               <div style={{ marginTop: '15px', textAlign: 'right' }}>
-                <strong style={{ fontSize: '18px' }}>Total: ₹{order.totalAmount}</strong>
+                <strong style={{ fontSize: '18px' }}>Total: ₹{order.totalAmount} ({getPaymentLabel(order)})</strong>
               </div>
             </div>
           ))}

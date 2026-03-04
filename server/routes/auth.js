@@ -127,6 +127,9 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Mark partner as active when they log in (for "Available" vs "Off duty" status)
+    await User.findByIdAndUpdate(user._id, { lastActiveAt: new Date() });
+
     // Generate token
     const token = jwt.sign(
       { id: user._id },
@@ -235,11 +238,20 @@ router.post('/change-password', auth, async (req, res) => {
 // PUT /api/auth/change-email
 router.put('/change-email', auth, async (req, res) => {
   try {
-    const { newEmail } = req.body;
-    if (!newEmail) return res.status(400).json({ message: 'New email required' });
+    const { currentPassword, newEmail } = req.body;
+    if (!newEmail || typeof newEmail !== 'string') {
+      return res.status(400).json({ message: 'New email required' });
+    }
     const normalized = newEmail.toLowerCase().trim();
-    if (!/^[^\\s@]+@[^\\s@]+\\.com$/i.test(normalized)) {
-      return res.status(400).json({ message: 'Email must be a valid .com address' });
+    const atIdx = normalized.indexOf('@');
+    if (atIdx < 1 || !normalized.includes('.', atIdx + 1) || normalized.length < 5) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
+    }
+    if (currentPassword) {
+      const userWithPass = await User.findById(req.user._id).select('+password');
+      if (!userWithPass || !(await bcrypt.compare(currentPassword, userWithPass.password))) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
     }
     const exists = await User.findOne({ email: normalized });
     if (exists && exists._id.toString() !== req.user._id.toString()) {

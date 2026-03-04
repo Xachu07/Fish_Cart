@@ -74,6 +74,16 @@ export default function AdminOrders() {
     };
   };
 
+  const formatOrderDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = d.toLocaleString('en', { month: 'short' });
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  const getOrderDisplayId = (order) => order.displayId || '#' + String(order._id || '').slice(-6).toUpperCase();
+
   const filteredOrders = orders.filter((o) => {
     if (filterStatus !== 'All' && o.status !== filterStatus) return false;
     if (filterArea) {
@@ -145,6 +155,27 @@ export default function AdminOrders() {
     background: '#fff',
     minWidth: 140,
     cursor: 'pointer',
+  };
+
+  const getStatusSelectStyle = (status) => {
+    const base = { ...selectStyle };
+    if (status === 'Pending') {
+      base.background = '#fef3c7';
+      base.color = '#92400e';
+      base.borderColor = '#fcd34d';
+    } else if (status === 'Delivered') {
+      base.background = '#dcfce7';
+      base.color = '#166534';
+      base.borderColor = '#86efac';
+    }
+    return base;
+  };
+
+  const clearFilters = () => {
+    setFilterArea('');
+    setFilterStatus('All');
+    setDateFrom('');
+    setDateTo('');
   };
 
   return (
@@ -223,6 +254,24 @@ export default function AdminOrders() {
             }}
           />
         </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={clearFilters}
+            style={{
+              padding: '10px 14px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              background: '#fff',
+              color: '#64748b',
+              cursor: 'pointer',
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -254,9 +303,9 @@ export default function AdminOrders() {
                 return (
                   <tr key={order._id}>
                     <td style={tdStyle}>
-                      <div style={{ fontWeight: 600 }}>#{String(order._id).slice(-6).toUpperCase()}</div>
+                      <div style={{ fontWeight: 600 }}>{getOrderDisplayId(order)}</div>
                       <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {formatOrderDate(order.createdAt)}
                       </div>
                     </td>
                     <td style={tdStyle}>
@@ -272,8 +321,10 @@ export default function AdminOrders() {
                       ))}
                     </td>
                     <td style={tdStyle}>
-                      <span style={{ fontWeight: 600 }}>₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}</span>
-                      <span style={{ fontSize: 12, color: '#64748b', marginLeft: 4 }}>– {paymentLabel}</span>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                        <span style={{ padding: '2px 8px', borderRadius: 999, background: '#f1f5f9', color: '#64748b', fontSize: 11, fontWeight: 500 }}>{paymentLabel}</span>
+                      </div>
                     </td>
                     <td style={tdStyle}>
                       <select
@@ -293,7 +344,7 @@ export default function AdminOrders() {
                         value={order.status}
                         onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                         disabled={updatingId === order._id}
-                        style={{ ...selectStyle, cursor: updatingId === order._id ? 'wait' : 'pointer' }}
+                        style={{ ...getStatusSelectStyle(order.status), cursor: updatingId === order._id ? 'wait' : 'pointer' }}
                       >
                         {STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>{s}</option>

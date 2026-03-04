@@ -16,6 +16,11 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Token is not valid' });
     }
 
+    // Track partner activity for status: "logged in" = Available/Delivering, else Off duty
+    if (req.user.role === 'partner') {
+      User.findByIdAndUpdate(req.user._id, { lastActiveAt: new Date() }).catch(() => {});
+    }
+
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });

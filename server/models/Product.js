@@ -35,6 +35,11 @@ const productSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    cleaningFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     isActive: {
       type: Boolean,
       default: true,

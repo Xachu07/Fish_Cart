@@ -161,15 +161,15 @@ export default function GuestHome() {
                       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                     }}
                   >
-                    <div style={{ width: '100%', height: 140, overflow: 'hidden', borderRadius: 10, background: '#f1f5f9' }}>
+                    <div style={{ width: '100%', height: 192, overflow: 'hidden', borderRadius: 10, background: '#f1f5f9' }}>
                       {product.imageURL ? (
                         <img
                           src={product.imageURL}
                           alt={product.fishName}
-                          style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+                          style={{ width: '100%', height: '192px', objectFit: 'cover', display: 'block' }}
                         />
                       ) : (
-                        <div style={{ width: '100%', height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 14 }}>No image</div>
+                        <div style={{ width: '100%', height: 192, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 14 }}>No image</div>
                       )}
                     </div>
                     <h3 style={{ ...cardTitle, marginTop: 14, marginBottom: 4, fontSize: 17 }}>{product.fishName}</h3>

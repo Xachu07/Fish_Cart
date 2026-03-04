@@ -12,13 +12,22 @@ const orderItemSchema = new mongoose.Schema({
   },
   preparation: {
     type: String,
-    enum: ['Whole', 'Cleaned'],
+    enum: ['Whole', 'Cleaned', 'Curry Piece', 'Fry Cut'],
     required: true,
   },
 });
 
 const orderSchema = new mongoose.Schema(
   {
+    displayId: {
+      type: String,
+      trim: true,
+    },
+    areaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Area',
+      default: null,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -39,6 +48,10 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null,
+    },
+    runOrder: {
+      type: Number,
+      default: 0,
     },
     paymentMethod: {
       type: String,

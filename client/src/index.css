@@ -50,9 +50,9 @@ a:hover{color:var(--sea-500)}
 }
 
 @media print {
-  body * { visibility: hidden; }
-  .packing-list-print,
-  .packing-list-print * { visibility: visible; }
+  .admin-print-hide { display: none !important; }
+  .admin-print-main { margin-left: 0 !important; }
+  .no-print { display: none !important; }
   .packing-list-print {
     position: absolute;
     left: 0;
@@ -61,6 +61,16 @@ a:hover{color:var(--sea-500)}
     padding: 16px;
     background: #fff;
   }
-  .packing-list-print .no-print { display: none !important; }
+  .packing-list-print table {
+    color: #000;
+    border: 1px solid #000;
+  }
+  .packing-list-print th,
+  .packing-list-print td {
+    border: 1px solid #333;
+    color: #000;
+  }
+  .packing-list-print th { background: #f5f5f5 !important; }
+  .packing-list-print td { background: #fff !important; }
 }
 

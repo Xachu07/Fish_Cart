@@ -3,7 +3,9 @@ import { CheckCircle } from 'lucide-react';
 
 export default function OrderSuccess() {
   const location = useLocation();
-  const orderId = location.state?.orderId || location.state?.order?._id;
+  const order = location.state?.order;
+  const orderId = location.state?.orderId || order?._id;
+  const displayId = order?.displayId || (orderId ? '#' + String(orderId).slice(-8).toUpperCase() : null);
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '48px 24px', textAlign: 'center' }}>
@@ -16,9 +18,9 @@ export default function OrderSuccess() {
       <p style={{ fontSize: 16, color: '#475569', marginBottom: 8 }}>
         Your catch will be procured fresh and delivered tomorrow morning.
       </p>
-      {orderId && (
+      {displayId && (
         <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>
-          Order ID: <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>{String(orderId).slice(-8).toUpperCase()}</strong>
+          Order ID: <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>{displayId}</strong>
         </p>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

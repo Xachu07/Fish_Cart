@@ -14,7 +14,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Database
 connectDB();
@@ -25,6 +25,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/shop', require('./routes/shop'));
 app.use('/api/areas', require('./routes/areas'));
+app.use('/api/partner', require('./routes/partner'));
 app.use('/api/admin', require('./routes/adminUsers'));
 
 // Test route

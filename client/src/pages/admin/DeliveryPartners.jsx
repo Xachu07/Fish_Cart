@@ -4,10 +4,12 @@ import { toast } from 'react-hot-toast';
 import { Plus, FileText, Trash2, X, Edit2 } from 'lucide-react';
 import PasswordInput from '../../components/PasswordInput';
 
+// Three statuses: Off duty (not logged in), Available (logged in), Delivering (on shift with orders out)
 const STATUS_CONFIG = {
-  Available: { label: 'Available', bg: '#ecfdf5', color: '#065f46', dot: '🟢' },
-  'On Route': { label: 'On Route', bg: '#dbeafe', color: '#1e40af', dot: '🔵' },
-  'Off Duty': { label: 'Off Duty', bg: '#fee2e2', color: '#991b1b', dot: '🔴' },
+  Available: { label: 'Available', bg: '#dcfce7', color: '#166534' },
+  Delivering: { label: 'Delivering', bg: '#dbeafe', color: '#1e40af' },
+  'Off duty': { label: 'Off duty', bg: '#f1f5f9', color: '#475569' },
+  'Off Duty': { label: 'Off duty', bg: '#f1f5f9', color: '#475569' }, // backward compat
 };
 
 function todayISO() {
@@ -18,6 +20,61 @@ function formatDateLabel(iso) {
   if (!iso) return 'Today';
   const d = new Date(iso + 'T12:00:00');
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function CashTransferCell({ partner, selectedDate, onVerified }) {
+  const [verifying, setVerifying] = useState(false);
+  const transfer = partner.cashTransfer;
+  const cashToCollect = Number(partner.cashToCollect ?? 0);
+
+  const handleVerify = async () => {
+    if (!transfer || transfer.status === 'verified') return;
+    setVerifying(true);
+    try {
+      await api.put('/admin/partners/cash-transfer/verify', { partnerId: partner._id, date: selectedDate });
+      toast.success('Cash transfer verified');
+      onVerified();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to verify');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  if (transfer) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={{ fontSize: 12, color: '#64748b' }}>Total transferred</span>
+        <span style={{ fontWeight: 700, fontSize: 15 }}>₹{Number(transfer.amount).toLocaleString('en-IN')}</span>
+        {transfer.status === 'verified' ? (
+          <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Verified</span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleVerify}
+            disabled={verifying}
+            style={{
+              padding: '4px 10px',
+              fontSize: 12,
+              fontWeight: 600,
+              background: '#15803d',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              cursor: verifying ? 'not-allowed' : 'pointer',
+              alignSelf: 'flex-start',
+            }}
+          >
+            {verifying ? '…' : 'Verify'}
+          </button>
+        )}
+      </div>
+    );
+  }
+  if (cashToCollect > 0) {
+    return <span style={{ fontSize: 13, color: '#64748b' }}>—</span>;
+  }
+  return <span style={{ fontSize: 13, color: '#94a3b8' }}>—</span>;
 }
 
 export default function DeliveryPartners() {
@@ -107,7 +164,7 @@ export default function DeliveryPartners() {
   };
 
   const handleDelete = async (partner) => {
-    if (!window.confirm(`Remove ${partner.name}? This cannot be undone.`)) return;
+    if (!window.confirm('Are you sure you want to remove this delivery partner?')) return;
     try {
       await api.delete(`/admin/users/${partner._id}`);
       setEditDetailsPartner(null);
@@ -210,17 +267,18 @@ export default function DeliveryPartners() {
                 <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Load ({formatDateLabel(selectedDate)})</th>
                 <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Cash to Collect (COD)</th>
                 <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Completed Deliveries</th>
+                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Cash Transferred</th>
                 <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: 48, textAlign: 'center', color: '#64748b' }}>Loading...</td>
+                  <td colSpan={9} style={{ padding: 48, textAlign: 'center', color: '#64748b' }}>Loading...</td>
                 </tr>
               ) : filteredPartners.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: 48, textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan={9} style={{ padding: 48, textAlign: 'center', color: '#64748b' }}>
                     {partners.length === 0 ? 'No delivery partners yet.' : 'No partners in this area.'}
                   </td>
                 </tr>
@@ -242,8 +300,11 @@ export default function DeliveryPartners() {
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                         {p.completedDeliveries ?? 0}/{p.todayLoad ?? 0} Delivered
                       </td>
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      <td style={{ padding: '14px 16px' }}>
+                        <CashTransferCell partner={p} selectedDate={selectedDate} onVerified={fetchData} />
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
                           <button
                             type="button"
                             onClick={() => setEditDetailsPartner(p)}
@@ -263,7 +324,7 @@ export default function DeliveryPartners() {
                           <button
                             type="button"
                             onClick={() => handleDelete(p)}
-                            style={{ padding: 6, color: '#b91c1c', background: 'rgba(185,28,28,0.06)', border: '1px solid rgba(185,28,28,0.2)', borderRadius: 6, cursor: 'pointer' }}
+                            style={{ padding: 6, color: '#b91c1c', background: 'rgba(185,28,28,0.06)', border: '1px solid rgba(185,28,28,0.2)', borderRadius: 6, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             title="Delete partner"
                           >
                             <Trash2 size={14} />

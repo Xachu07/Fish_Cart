@@ -12,6 +12,8 @@ export default function Checkout() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [shopOpen, setShopOpen] = useState(false);
+  const [shopCleaningFeePerKg, setShopCleaningFeePerKg] = useState(0);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [delivery, setDelivery] = useState({ name: '', phone: '', address: '' });
@@ -21,13 +23,16 @@ export default function Checkout() {
     if (!user) return;
     const load = async () => {
       try {
-        const [meRes, shopRes] = await Promise.all([
+        const [meRes, shopRes, productsRes] = await Promise.all([
           api.get('/auth/me'),
           api.get('/shop/status').catch(() => ({ data: { isOpen: false } })),
+          api.get('/products').catch(() => ({ data: [] })),
         ]);
         const u = meRes.data?.user;
         if (u) setProfile(u);
         setShopOpen(!!shopRes.data?.isOpen);
+        setShopCleaningFeePerKg(Math.max(0, Number(shopRes.data?.cleaningFee ?? 0)));
+        setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
 
         setDelivery({
           name: u?.name || '',
@@ -46,7 +51,23 @@ export default function Checkout() {
 
   const deliveryFee = Number(profile?.areaOfService?.deliveryFee ?? 0);
   const subtotal = getTotal();
-  const grandTotal = subtotal + deliveryFee;
+
+  // Cleaning fee: per product if set, else shop default; only for non-whole preparations
+  const productByFish = (products || []).reduce((acc, p) => {
+    if (p.fishName) acc[p.fishName] = p;
+    return acc;
+  }, {});
+  const totalCleaningFee = cart.reduce((sum, item) => {
+    if ((item.preparation || '').trim() === 'Whole (Uncleaned)') return sum;
+    const product = productByFish[item.fishName];
+    const feePerKg = (product?.cleaningFee != null && Number(product.cleaningFee) > 0)
+      ? Number(product.cleaningFee)
+      : shopCleaningFeePerKg;
+    if (feePerKg > 0) return sum + feePerKg * item.qty;
+    return sum;
+  }, 0);
+
+  const grandTotal = subtotal + totalCleaningFee + deliveryFee;
 
   const handlePlaceOrder = async () => {
     if (!delivery.name?.trim()) {
@@ -142,6 +163,10 @@ export default function Checkout() {
             <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>House address</div>
             <div style={{ fontSize: 14, color: '#0f172a', whiteSpace: 'pre-wrap' }}>{delivery.address || '—'}</div>
           </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Delivery area</div>
+            <div style={{ fontSize: 14, color: '#0f172a' }}>{profile?.areaOfService?.name || '—'}</div>
+          </div>
         </div>
       </section>
 
@@ -162,6 +187,12 @@ export default function Checkout() {
           <span>Subtotal</span>
           <span>₹{subtotal.toLocaleString('en-IN')}</span>
         </div>
+        {totalCleaningFee > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#475569', marginBottom: 6 }}>
+            <span>Cleaning Fee</span>
+            <span>₹{totalCleaningFee.toLocaleString('en-IN')}</span>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#475569', marginBottom: 12 }}>
           <span>Delivery fee</span>
           <span>₹{deliveryFee.toLocaleString('en-IN')}</span>
@@ -189,24 +220,21 @@ export default function Checkout() {
         <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginLeft: 28 }}>Pay when you receive your order.</p>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', cursor: 'pointer', marginTop: 12 }}>
           <input type="radio" name="pay" checked={paymentMethod === 'UPI'} onChange={() => setPaymentMethod('UPI')} />
-          <span style={{ fontWeight: 600 }}>Prepay – Scan QR (demo)</span>
+          <span style={{ fontWeight: 600 }}>Prepay – Scan QR</span>
         </label>
-        <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginLeft: 28 }}>Scan the QR with your phone. For this project, payment is simulated.</p>
+        <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginLeft: 28 }}>Scan the QR with your phone to pay.</p>
 
         {paymentMethod === 'UPI' && (
           <div style={{ marginTop: 20, padding: 20, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', textAlign: 'center' }}>
             <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#0f172a' }}>Scan to pay ₹{grandTotal.toLocaleString('en-IN')}</p>
             <div style={{ display: 'inline-block', padding: 16, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb' }}>
               <QRCodeSVG
-                value={`FISHCART-PREPAY|Amount:₹${grandTotal}|Order total (demo - no real payment)`}
+                value={`FISHCART-PREPAY|Amount:₹${grandTotal}|Order total`}
                 size={180}
                 level="M"
                 includeMargin={false}
               />
             </div>
-            <p style={{ margin: '12px 0 0', fontSize: 12, color: '#64748b', maxWidth: 280, marginLeft: 'auto', marginRight: 'auto' }}>
-              Use your phone camera or any QR scanner to scan. In this project, no real payment is made — click &quot;I&apos;ve paid – Place order&quot; below to mark as prepaid and place the order.
-            </p>
           </div>
         )}
       </section>

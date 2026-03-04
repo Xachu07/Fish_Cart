@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
@@ -11,6 +11,7 @@ const sectionStyle = { padding: '48px 16px', maxWidth: 1150, margin: '0 auto' };
 
 export default function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dailyCatchRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -27,6 +28,15 @@ export default function Home() {
     fetchProducts();
     fetchShopStatus();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.scrollTo !== 'dailyCatch') return;
+    const t = setTimeout(() => {
+      dailyCatchRef.current?.scrollIntoView({ behavior: 'smooth' });
+      navigate('.', { replace: true, state: null });
+    }, 0);
+    return () => clearTimeout(t);
+  }, [location.state?.scrollTo, navigate]);
 
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => p.status === 'Available' && (p.isActive !== false));
@@ -126,11 +136,11 @@ export default function Home() {
               </p>
               <div style={{ marginTop: 18, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 {shopStatus ? (
-                  <button onClick={scrollToDailyCatch} style={{ background: 'var(--sea-600)', color: '#fff', padding: '10px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                  <button onClick={scrollToDailyCatch} style={{ background: 'var(--sea-600)', color: '#fff', padding: '10px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 15, minHeight: 42, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     View Today&apos;s Catch
                   </button>
                 ) : (
-                  <span style={{ background: '#dc2626', color: '#fff', padding: '10px 18px', borderRadius: 8, fontWeight: 600, fontSize: 15 }}>
+                  <span style={{ background: '#dc2626', color: '#fff', padding: '10px 18px', borderRadius: 8, fontWeight: 600, fontSize: 15, minHeight: 42, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     Closed now
                   </span>
                 )}
@@ -290,12 +300,16 @@ export default function Home() {
                       boxShadow: '0 4px 12px rgba(12,74,63,0.04)',
                     }}
                   >
-                    {product.imageURL && (
-                      <img
-                        src={product.imageURL}
-                        alt={product.fishName}
-                        style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8 }}
-                      />
+                    {product.imageURL ? (
+                      <div style={{ width: '100%', height: 192, overflow: 'hidden', borderRadius: 8, background: '#f1f5f9' }}>
+                        <img
+                          src={product.imageURL}
+                          alt={product.fishName}
+                          style={{ width: '100%', height: '192px', objectFit: 'cover', display: 'block' }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ width: '100%', height: 192, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>No image</div>
                     )}
                     <h3 style={{ marginTop: 12, marginBottom: 4, color: '#0f1724' }}>{product.fishName}</h3>
                     <p style={{ color: '#6b7280', fontSize: 14 }}>{product.category}</p>

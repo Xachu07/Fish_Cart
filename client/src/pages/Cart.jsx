@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import api from '../utils/api';
 
@@ -16,25 +17,28 @@ const Cart = () => {
     navigate('/checkout');
   };
 
+  const goToDailyCatch = () => {
+    navigate('/', { state: { scrollTo: 'dailyCatch' } });
+  };
+
+  const continueShoppingStyle = {
+    width: '100%',
+    padding: '14px 20px',
+    backgroundColor: 'transparent',
+    color: 'var(--sea-600)',
+    border: '2px solid var(--sea-600)',
+    borderRadius: 10,
+    cursor: 'pointer',
+    fontSize: 15,
+    fontWeight: 600,
+  };
+
   if (cart.length === 0) {
     return (
       <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--sea-50)', minHeight: '50vh' }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>Your cart is empty</h2>
-        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>Add something from the Daily Catch to get started.</p>
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: 'var(--sea-600)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
+        <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>Add something from the Daily Catch.</p>
+        <button type="button" onClick={goToDailyCatch} style={continueShoppingStyle}>
           Continue shopping
         </button>
       </div>
@@ -62,30 +66,70 @@ const Cart = () => {
               <td style={{ padding: '10px' }}>{item.preparation}</td>
               <td style={{ padding: '10px' }}>₹{item.price}/kg</td>
               <td style={{ padding: '10px' }}>
-                <input
-                  type="number"
-                  min="1"
-                  value={item.qty}
-                  onChange={(e) =>
-                    updateQuantity(item.fishName, item.preparation, parseInt(e.target.value) || 1)
-                  }
-                  style={{ width: '60px', padding: '5px' }}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(item.fishName, item.preparation, Math.max(1, item.qty - 1))}
+                    disabled={item.qty <= 1}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      border: '1px solid #e5e7eb',
+                      background: item.qty <= 1 ? '#f1f5f9' : '#fff',
+                      color: item.qty <= 1 ? '#94a3b8' : '#0f172a',
+                      fontSize: 18,
+                      fontWeight: 700,
+                      cursor: item.qty <= 1 ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    −
+                  </button>
+                  <span style={{ minWidth: 28, textAlign: 'center', fontSize: 15, fontWeight: 600 }}>{item.qty}</span>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(item.fishName, item.preparation, item.qty + 1)}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      border: '1px solid #e5e7eb',
+                      background: '#fff',
+                      color: '#0f172a',
+                      fontSize: 18,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
               </td>
               <td style={{ padding: '10px' }}>₹{item.price * item.qty}</td>
               <td style={{ padding: '10px' }}>
                 <button
+                  type="button"
                   onClick={() => removeFromCart(item.fishName, item.preparation)}
+                  aria-label="Remove item"
                   style={{
-                    padding: '5px 10px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
+                    padding: 8,
+                    backgroundColor: 'transparent',
+                    color: '#b91c1c',
+                    border: '1px solid #fca5a5',
+                    borderRadius: 8,
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  Remove
+                  <Trash2 size={18} />
                 </button>
               </td>
             </tr>
@@ -97,22 +141,7 @@ const Cart = () => {
         {!shopStatus && (
           <p style={{ color: '#b91c1c', textAlign: 'right', fontSize: 14 }}>Shop is currently closed. Orders accepted 5:00 PM – 12:00 AM.</p>
         )}
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: 'transparent',
-            color: 'var(--sea-600)',
-            border: '2px solid var(--sea-600)',
-            borderRadius: 8,
-            cursor: 'pointer',
-            fontSize: 14,
-            fontWeight: 600,
-            marginTop: '8px',
-          }}
-        >
+        <button type="button" onClick={goToDailyCatch} style={{ ...continueShoppingStyle, marginTop: 8 }}>
           Continue shopping
         </button>
         <button
@@ -120,15 +149,15 @@ const Cart = () => {
           onClick={goToCheckout}
           style={{
             width: '100%',
-            padding: '15px',
+            padding: '14px 20px',
             backgroundColor: 'var(--sea-600)',
-            color: 'white',
+            color: '#fff',
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 10,
             cursor: 'pointer',
-            fontSize: 16,
-            fontWeight: 700,
-            marginTop: '10px',
+            fontSize: 15,
+            fontWeight: 600,
+            marginTop: 10,
           }}
         >
           Proceed to Checkout

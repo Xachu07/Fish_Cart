@@ -40,7 +40,7 @@ router.get('/:id', async (req, res) => {
 // POST create product (Admin only)
 router.post('/', auth, adminAuth, async (req, res) => {
   try {
-    const { fishName, price, stockQuantity, imageURL, category, status, cutOptions, isActive } = req.body;
+    const { fishName, price, stockQuantity, imageURL, category, status, cutOptions, isActive, cleaningFee } = req.body;
 
     if (!fishName || price === undefined || stockQuantity === undefined || !category) {
       return res.status(400).json({ message: 'Please provide fishName, price, stockQuantity, and category' });
@@ -54,6 +54,7 @@ router.post('/', auth, adminAuth, async (req, res) => {
       category,
       status: status || 'Available',
       cutOptions: Array.isArray(cutOptions) ? cutOptions : [],
+      cleaningFee: cleaningFee != null ? Math.max(0, Number(cleaningFee)) : 0,
       isActive: typeof isActive === 'boolean' ? isActive : true,
     });
 
@@ -67,7 +68,7 @@ router.post('/', auth, adminAuth, async (req, res) => {
 // PUT update product (Admin only)
 router.put('/:id', auth, adminAuth, async (req, res) => {
   try {
-    const { fishName, price, stockQuantity, imageURL, category, status, cutOptions, isActive } = req.body;
+    const { fishName, price, stockQuantity, imageURL, category, status, cutOptions, isActive, cleaningFee } = req.body;
 
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -82,6 +83,7 @@ router.put('/:id', auth, adminAuth, async (req, res) => {
     if (category !== undefined) product.category = category;
     if (status !== undefined) product.status = status;
     if (cutOptions !== undefined) product.cutOptions = Array.isArray(cutOptions) ? cutOptions : product.cutOptions;
+    if (cleaningFee !== undefined) product.cleaningFee = Math.max(0, Number(cleaningFee));
     if (isActive !== undefined) product.isActive = !!isActive;
 
     await product.save();

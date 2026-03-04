@@ -2,17 +2,168 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
-import { Package, AlertCircle } from 'lucide-react';
+import { Package, AlertCircle, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
 
-const STATUS_PRIORITY = { 'Out for Delivery': 0, Packed: 1, Pending: 2, Delivered: 3 };
+// Backend returns orders sorted by runOrder; we use that order for the list
 
-function sortPendingFirst(orders) {
-  return [...orders].sort((a, b) => {
-    const pa = STATUS_PRIORITY[a.status] ?? 4;
-    const pb = STATUS_PRIORITY[b.status] ?? 4;
-    if (pa !== pb) return pa - pb;
-    return new Date(a.createdAt) - new Date(b.createdAt);
-  });
+function OrderListItem({
+  order,
+  index,
+  total,
+  moveUp,
+  moveDown,
+  reordering,
+  expandedOrderId,
+  setExpandedOrderId,
+  reportingOrderId,
+  setReportingOrderId,
+  reportIssue,
+}) {
+  const isExpanded = expandedOrderId === order._id;
+  const cardStyle = {
+    background: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  };
+  return (
+    <div style={cardStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#64748b', minWidth: 24 }}>{index + 1}</span>
+        <button
+          type="button"
+          onClick={() => setExpandedOrderId(isExpanded ? null : order._id)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            flex: 1,
+            minWidth: 0,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'left',
+            padding: 4,
+          }}
+        >
+          <ChevronRight
+            size={18}
+            style={{ color: '#64748b', transform: isExpanded ? 'rotate(90deg)' : 'none', flexShrink: 0 }}
+          />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>
+              {order.userId?.name || 'Customer'}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+              {order.userId?.areaOfService?.name || '—'}
+              {order.paymentMethod === 'PREPAID' ? ' · PREPAID' : ` · ₹${Number(order.totalAmount || 0).toLocaleString('en-IN')}`}
+            </div>
+          </div>
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <span
+            style={{
+              padding: '4px 8px',
+              borderRadius: 6,
+              fontSize: 11,
+              fontWeight: 600,
+              background: order.paymentMethod === 'PREPAID' ? '#ecfdf5' : '#fef3c7',
+              color: order.paymentMethod === 'PREPAID' ? '#065f46' : '#92400e',
+            }}
+          >
+            {order.paymentMethod === 'PREPAID' ? 'PREPAID' : 'COD'}
+          </span>
+          <button
+            type="button"
+            onClick={() => moveUp(index)}
+            disabled={reordering || index === 0}
+            style={{
+              padding: 6,
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              background: '#fff',
+              cursor: reordering || index === 0 ? 'not-allowed' : 'pointer',
+              opacity: index === 0 ? 0.5 : 1,
+            }}
+            title="Move earlier"
+          >
+            <ChevronUp size={18} color="#475569" />
+          </button>
+          <button
+            type="button"
+            onClick={() => moveDown(index)}
+            disabled={reordering || index === total - 1}
+            style={{
+              padding: 6,
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              background: '#fff',
+              cursor: reordering || index === total - 1 ? 'not-allowed' : 'pointer',
+              opacity: index === total - 1 ? 0.5 : 1,
+            }}
+            title="Move later"
+          >
+            <ChevronDown size={18} color="#475569" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setReportingOrderId(reportingOrderId === order._id ? null : order._id)}
+            style={{
+              padding: 6,
+              background: 'transparent',
+              border: '1px solid #e5e7eb',
+              borderRadius: 8,
+              cursor: 'pointer',
+            }}
+            title="Report issue"
+          >
+            <AlertCircle size={18} color="#64748b" />
+          </button>
+        </div>
+      </div>
+      {isExpanded && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+          <div style={{ fontSize: 13, color: '#475569', marginBottom: 6 }}>
+            <strong>Address:</strong> {order.userId?.address || '—'}
+          </div>
+          {order.userId?.phone && (
+            <div style={{ fontSize: 13, color: '#475569', marginBottom: 6 }}>
+              <strong>Contact:</strong> {order.userId.phone}
+            </div>
+          )}
+          <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>
+            <strong>Items:</strong>{' '}
+            {(order.items || []).map((item, i) => `${item.qty}kg ${item.fishName} (${item.preparation})`).join(', ')}
+          </div>
+          {reportingOrderId === order._id && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 8 }}>Report issue</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {['Customer Not Home', 'Gate Locked', 'Wrong Address', 'Other'].map((issue) => (
+                  <button
+                    key={issue}
+                    type="button"
+                    onClick={() => reportIssue(order._id, issue)}
+                    style={{
+                      padding: '8px 12px',
+                      background: '#f1f5f9',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {issue}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PartnerDashboard() {
@@ -21,6 +172,10 @@ export default function PartnerDashboard() {
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
   const [reportingOrderId, setReportingOrderId] = useState(null);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [reordering, setReordering] = useState(false);
+  const [cashTransfer, setCashTransfer] = useState(null);
+  const [markingTransferred, setMarkingTransferred] = useState(false);
 
   const fetchAssignedOrders = async () => {
     try {
@@ -35,15 +190,81 @@ export default function PartnerDashboard() {
     }
   };
 
+  function todayDateStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  const fetchCashTransfer = async () => {
+    try {
+      const res = await api.get('/orders/partner/cash-transfer', { params: { date: todayDateStr() } });
+      setCashTransfer(res.data || null);
+    } catch {
+      setCashTransfer(null);
+    }
+  };
+
   useEffect(() => {
     fetchAssignedOrders();
   }, []);
 
-  const sortedOrders = useMemo(() => sortPendingFirst(orders), [orders]);
-  const pendingOrders = useMemo(() => sortedOrders.filter((o) => o.status !== 'Delivered'), [sortedOrders]);
+  useEffect(() => {
+    const done = orders.length > 0 && orders.every((o) => o.status === 'Delivered');
+    const toSettle = orders.filter((o) => o.status === 'Delivered' && o.paymentMethod !== 'PREPAID').reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
+    if (done && orders.length > 0 && toSettle > 0) fetchCashTransfer();
+    else setCashTransfer(null);
+  }, [orders]);
+
+  // Use API order (runOrder); pending = not yet delivered
+  const pendingOrders = useMemo(() => orders.filter((o) => o.status !== 'Delivered'), [orders]);
   const nextDelivery = pendingOrders[0] ?? null;
   const restPending = pendingOrders.slice(1);
   const allDelivered = orders.length > 0 && orders.every((o) => o.status === 'Delivered');
+
+  const deliveredOrderIds = useMemo(() => orders.filter((o) => o.status === 'Delivered').map((o) => o._id), [orders]);
+
+  const reorderDeliveries = async (newPendingIds) => {
+    if (newPendingIds.length === 0 && deliveredOrderIds.length === 0) return;
+    setReordering(true);
+    try {
+      const orderIds = deliveredOrderIds.length ? [...newPendingIds, ...deliveredOrderIds] : newPendingIds;
+      await api.put('/orders/assigned/reorder', { orderIds });
+      toast.success('Delivery order updated');
+      await fetchAssignedOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reorder');
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const moveUp = (index) => {
+    if (index <= 0) return;
+    const ids = pendingOrders.map((o) => o._id);
+    [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]];
+    reorderDeliveries(ids);
+  };
+
+  const moveDown = (index) => {
+    if (index >= pendingOrders.length - 1) return;
+    const ids = pendingOrders.map((o) => o._id);
+    [ids[index], ids[index + 1]] = [ids[index + 1], ids[index]];
+    reorderDeliveries(ids);
+  };
+
+  const markAsTransferred = async () => {
+    if (cashToSettle <= 0) return;
+    setMarkingTransferred(true);
+    try {
+      await api.post('/orders/partner/cash-transferred', { date: todayDateStr(), amount: cashToSettle });
+      toast.success('Marked as transferred. Admin will verify.');
+      await fetchCashTransfer();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to mark as transferred');
+    } finally {
+      setMarkingTransferred(false);
+    }
+  };
 
   const totalDeliveries = orders.length;
   const cashToCollect = useMemo(
@@ -150,8 +371,52 @@ export default function PartnerDashboard() {
         </div>
       </section>
 
-      {/* 2. Active Route – Next Delivery */}
-      {nextDelivery ? (
+      {/* When shift is OFF: show full delivery list so partner can see all orders, reorder, and view details */}
+      {!online && (
+        <section
+          style={{
+            background: '#fff',
+            borderRadius: 16,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden',
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ padding: '12px 16px', background: '#475569', color: '#fff', fontSize: 14, fontWeight: 700 }}>
+            Orders to deliver
+          </div>
+          <div style={{ padding: 12 }}>
+            {pendingOrders.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+                No deliveries assigned. Your list will appear here when orders are assigned.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {pendingOrders.map((order, index) => (
+                  <OrderListItem
+                    key={order._id}
+                    order={order}
+                    index={index}
+                    total={pendingOrders.length}
+                    moveUp={moveUp}
+                    moveDown={moveDown}
+                    reordering={reordering}
+                    expandedOrderId={expandedOrderId}
+                    setExpandedOrderId={setExpandedOrderId}
+                    reportingOrderId={reportingOrderId}
+                    setReportingOrderId={setReportingOrderId}
+                    reportIssue={reportIssue}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* 2. Active Route – Next Delivery (when shift is ON) */}
+      {online && nextDelivery ? (
         <section
           style={{
             background: '#fff',
@@ -282,97 +547,34 @@ export default function PartnerDashboard() {
         )
       )}
 
-      {/* 3. Pending Delivery List */}
-      {restPending.length > 0 && (
+      {/* 3. Pending Delivery List (when shift is ON) – reorderable with details */}
+      {online && restPending.length > 0 && (
         <section style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
-            Remaining ({restPending.length})
+            Delivery list – remaining ({restPending.length})
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {restPending.map((order) => (
-              <div
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {restPending.map((order, i) => (
+              <OrderListItem
                 key={order._id}
-                style={{
-                  background: '#fff',
-                  borderRadius: 12,
-                  padding: 14,
-                  border: '1px solid #e5e7eb',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>
-                      {order.userId?.name || 'Customer'}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                      {order.userId?.areaOfService?.name || '—'}
-                      {order.paymentMethod === 'PREPAID' ? ' · PREPAID' : ` · ₹${Number(order.totalAmount || 0).toLocaleString('en-IN')}`}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        background: order.paymentMethod === 'PREPAID' ? '#ecfdf5' : '#fef3c7',
-                        color: order.paymentMethod === 'PREPAID' ? '#065f46' : '#92400e',
-                      }}
-                    >
-                      {order.paymentMethod === 'PREPAID' ? 'PREPAID' : 'COD'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setReportingOrderId(reportingOrderId === order._id ? null : order._id)}
-                      style={{
-                        padding: 6,
-                        background: 'transparent',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 8,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title="Report issue"
-                    >
-                      <AlertCircle size={18} color="#64748b" />
-                    </button>
-                  </div>
-                </div>
-                {reportingOrderId === order._id && (
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 8 }}>Report issue</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {['Customer Not Home', 'Gate Locked', 'Wrong Address', 'Other'].map((issue) => (
-                        <button
-                          key={issue}
-                          type="button"
-                          onClick={() => reportIssue(order._id, issue)}
-                          style={{
-                            padding: '8px 12px',
-                            background: '#f1f5f9',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: 8,
-                            fontSize: 13,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {issue}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                order={order}
+                index={i + 1}
+                total={pendingOrders.length}
+                moveUp={() => moveUp(i + 1)}
+                moveDown={() => moveDown(i + 1)}
+                reordering={reordering}
+                expandedOrderId={expandedOrderId}
+                setExpandedOrderId={setExpandedOrderId}
+                reportingOrderId={reportingOrderId}
+                setReportingOrderId={setReportingOrderId}
+                reportIssue={reportIssue}
+              />
             ))}
           </div>
         </section>
       )}
 
-      {/* 4. End of Shift – Settle Cash */}
+      {/* 4. End of Shift – Total amount to transfer */}
       {allDelivered && totalDeliveries > 0 && (
         <section
           style={{
@@ -385,7 +587,7 @@ export default function PartnerDashboard() {
         >
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>All deliveries done</div>
           <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 16 }}>
-            Hand over the collected cash to head office.
+            Total Amount to be transferred
           </div>
           <div
             style={{
@@ -397,9 +599,32 @@ export default function PartnerDashboard() {
               marginBottom: 16,
             }}
           >
-            ₹{cashToSettle.toLocaleString('en-IN')} to hand over
+            ₹{cashToSettle.toLocaleString('en-IN')}
           </div>
-          <div style={{ fontSize: 13, opacity: 0.9 }}>Settle Cash</div>
+          {cashTransfer ? (
+            <div style={{ fontSize: 14, opacity: 0.95 }}>
+              {cashTransfer.status === 'verified' ? 'Verified by admin' : 'Pending verification by admin'}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={markAsTransferred}
+              disabled={markingTransferred || cashToSettle <= 0}
+              style={{
+                padding: '12px 24px',
+                background: 'rgba(255,255,255,0.95)',
+                color: '#166534',
+                border: 'none',
+                borderRadius: 12,
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: markingTransferred || cashToSettle <= 0 ? 'not-allowed' : 'pointer',
+                opacity: markingTransferred || cashToSettle <= 0 ? 0.8 : 1,
+              }}
+            >
+              {markingTransferred ? '…' : 'Mark as Transferred'}
+            </button>
+          )}
         </section>
       )}
 

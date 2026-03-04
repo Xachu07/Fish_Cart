@@ -66,6 +66,7 @@ const AdminLayout = ({ children }) => {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f1f5f9', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* LEFT SIDEBAR */}
       <aside
+        className="admin-print-hide"
         style={{
           ...sidebarStyle,
           background: 'linear-gradient(180deg,#071827 0%, #062231 100%)',
@@ -122,7 +123,7 @@ const AdminLayout = ({ children }) => {
 
       {/* MOBILE SIDEBAR (overlay) */}
       {mobileOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} className="md:hidden">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} className="md:hidden admin-print-hide">
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={() => setMobileOpen(false)} />
           <aside style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: 260, background: '#0f1724', color: '#cbd5e1', padding: 16 }}>
             <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 8px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
@@ -174,7 +175,7 @@ const AdminLayout = ({ children }) => {
 
       {/* MAIN CONTENT WRAPPER */}
       <div
-        className="flex-1 flex flex-col overflow-hidden"
+        className="flex-1 flex flex-col overflow-hidden admin-print-main"
         style={{
           // add extra gutter space to the left so main content is indented away from the sidebar
           marginLeft: isMobile ? 0 : ((isExpanded ? expandedWidth : collapsedWidth) + 24),
@@ -185,6 +186,7 @@ const AdminLayout = ({ children }) => {
       >
         {/* TOP HEADER - consistent with customer header */}
         <header
+          className="admin-print-hide"
           style={{
             background: '#ffffff',
             borderBottom: '2px solid #e6f6f3',
@@ -311,7 +313,7 @@ const AdminLayout = ({ children }) => {
         </header>
 
         {/* spacer for fixed header */}
-        <div style={{ height: 64 }} />
+        <div className="admin-print-hide" style={{ height: 64 }} />
 
         {/* PAGE CONTENT — full width for admin screens */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8" style={{ boxSizing: 'border-box' }}>

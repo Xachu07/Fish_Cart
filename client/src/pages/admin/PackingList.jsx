@@ -1,21 +1,44 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
-import { Printer } from 'lucide-react';
+import { Printer, Box } from 'lucide-react';
 
 const PREP_COLUMNS = ['Whole', 'Cleaned', 'Curry Piece', 'Fry Cut'];
 
+const cutOptionToColumn = (opt) => {
+  if (!opt || typeof opt !== 'string') return null;
+  const s = opt.trim().toLowerCase();
+  if (s === 'whole (uncleaned)' || s === 'whole') return 'Whole';
+  if (s.includes('clean')) return 'Cleaned';
+  if (s.includes('curry')) return 'Curry Piece';
+  if (s.includes('fry') || s.includes('sliced')) return 'Fry Cut';
+  return null;
+};
+
 export default function PackingList() {
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState('');
   const [loading, setLoading] = useState(true);
   const [packingProductName, setPackingProductName] = useState(null);
+  const [justPackedProducts, setJustPackedProducts] = useState(new Set());
 
   useEffect(() => {
     fetchOrders();
     fetchAreas();
+    fetchProducts();
   }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const res = await api.get('/products');
+      setProducts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Error fetching products', err);
+      setProducts([]);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -51,13 +74,31 @@ export default function PackingList() {
 
   const aggregatedTable = useMemo(() => {
     const byFish = {};
+    const productByFish = (products || []).reduce((acc, p) => {
+      if (p.fishName) acc[p.fishName] = p;
+      return acc;
+    }, {});
+
     ordersInArea.forEach((order) => {
       (order.items || []).forEach((item) => {
         const fishName = item.fishName || 'Unknown';
         if (!byFish[fishName]) {
           byFish[fishName] = { Whole: 0, Cleaned: 0, 'Curry Piece': 0, 'Fry Cut': 0 };
         }
-        const prep = item.preparation === 'Cleaned' ? 'Cleaned' : 'Whole';
+        let prep = ['Whole', 'Cleaned', 'Curry Piece', 'Fry Cut'].includes(item.preparation)
+          ? item.preparation
+          : (item.preparation === 'Cleaned' ? 'Cleaned' : 'Whole');
+
+        if (prep === 'Whole') {
+          const product = productByFish[fishName];
+          const cutOptions = product?.cutOptions || [];
+          const hasWhole = cutOptions.some((o) => cutOptionToColumn(o) === 'Whole');
+          if (!hasWhole && cutOptions.length > 0) {
+            const firstMapped = cutOptions.map(cutOptionToColumn).find((c) => c && c !== 'Whole');
+            if (firstMapped) prep = firstMapped;
+          }
+        }
+
         if (byFish[fishName][prep] !== undefined) byFish[fishName][prep] += Number(item.qty) || 0;
       });
     });
@@ -65,7 +106,7 @@ export default function PackingList() {
       const total = PREP_COLUMNS.reduce((sum, col) => sum + (preps[col] || 0), 0);
       return { productName, ...preps, total };
     }).sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
-  }, [ordersInArea]);
+  }, [ordersInArea, products]);
 
   const orderIdsWithProduct = (productName) =>
     ordersInArea
@@ -73,6 +114,7 @@ export default function PackingList() {
       .map((o) => o._id);
 
   const isRowPacked = (productName) => {
+    if (justPackedProducts.has(productName)) return true;
     const ids = orderIdsWithProduct(productName);
     if (ids.length === 0) return true;
     return ids.every((id) => {
@@ -84,12 +126,23 @@ export default function PackingList() {
   const markProductPacked = async (productName) => {
     const ids = orderIdsWithProduct(productName);
     if (ids.length === 0) return;
+    setJustPackedProducts((prev) => new Set(prev).add(productName));
     setPackingProductName(productName);
     try {
       await Promise.all(ids.map((id) => api.put(`/orders/${id}/status`, { status: 'Packed' })));
       toast.success('Orders marked as packed');
       await fetchOrders();
+      setJustPackedProducts((prev) => {
+        const next = new Set(prev);
+        next.delete(productName);
+        return next;
+      });
     } catch (err) {
+      setJustPackedProducts((prev) => {
+        const next = new Set(prev);
+        next.delete(productName);
+        return next;
+      });
       toast.error(err.response?.data?.message || 'Failed to update orders');
     } finally {
       setPackingProductName(null);
@@ -124,7 +177,7 @@ export default function PackingList() {
 
   return (
     <div className="packing-list-print" style={{ padding: '24px 16px', maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
+      <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 24 }}>Packing List</h1>
           {/* Area filter */}
@@ -183,9 +236,12 @@ export default function PackingList() {
 
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading…</div>
-      ) : ordersInArea.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', background: '#f8fafc', borderRadius: 12, color: '#64748b' }}>
-          {selectedArea ? 'No orders to pack for this area.' : 'No orders to pack.'}
+      ) : aggregatedTable.length === 0 ? (
+        <div style={{ padding: 48, textAlign: 'center', background: '#f8fafc', borderRadius: 12, color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <Box size={40} style={{ color: '#94a3b8', flexShrink: 0 }} />
+          <p style={{ margin: 0, fontSize: 15, color: '#475569' }}>
+            {selectedArea ? 'No items require packing for this area today.' : 'No items require packing today.'}
+          </p>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -196,8 +252,8 @@ export default function PackingList() {
                 {PREP_COLUMNS.map((col) => (
                   <th key={col} style={{ ...thStyle, width: '12%', textAlign: 'right' }}>{col}</th>
                 ))}
-                <th style={{ ...thStyle, width: '14%', textAlign: 'right' }}>Total Required</th>
-                <th style={{ ...thStyle, width: '140px', textAlign: 'center' }}>ACTION</th>
+                <th style={{ ...thStyle, width: '14%', textAlign: 'right', background: '#f1f5f9', fontWeight: 700, color: '#0f172a' }}>Total Required</th>
+                <th className="no-print" style={{ ...thStyle, width: '140px', textAlign: 'center' }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
@@ -215,10 +271,10 @@ export default function PackingList() {
                         {row[col] ? `${row[col]} kg` : '—'}
                       </td>
                     ))}
-                    <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: rowColor, opacity: rowOpacity }}>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: rowColor ?? '#0f172a', opacity: rowOpacity, background: '#f8fafc' }}>
                       {row.total} kg
                     </td>
-                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <td className="no-print" style={{ ...tdStyle, textAlign: 'center' }}>
                       {isPacked ? (
                         <span
                           style={{
@@ -229,6 +285,7 @@ export default function PackingList() {
                             color: '#fff',
                             fontSize: 13,
                             fontWeight: 600,
+                            border: '1px solid #16a34a',
                           }}
                         >
                           Packed ✓
@@ -242,7 +299,7 @@ export default function PackingList() {
                             padding: '6px 12px',
                             border: '1px solid #16a34a',
                             borderRadius: 8,
-                            background: 'transparent',
+                            background: isPacking ? '#dcfce7' : 'transparent',
                             color: '#16a34a',
                             fontSize: 13,
                             fontWeight: 600,

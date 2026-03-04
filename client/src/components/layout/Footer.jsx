@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Footer() {
+  const { user } = useAuth();
+
   return (
     <footer style={{ background: 'linear-gradient(90deg,#042a3a 0%, #07344a 50%, #082e45 100%)', color: '#e6eef6', position: 'relative' }}>
       <div style={{ maxWidth: 1150, margin: '0 auto', padding: '48px 20px', display: 'flex', gap: 24, alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -13,15 +16,23 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Middle column: quick links */}
-        <div style={{ flex: 1 }}>
-          <div style={{ color: '#f0fbff', fontWeight: 700, marginBottom: 8 }}>Quick Links</div>
-          <ul style={{ marginTop: 8, listStyle: 'none', padding: 0, color: 'rgba(255,255,255,0.85)' }}>
-            <li style={{ marginBottom: 8 }}><Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>Home</Link></li>
-            <li style={{ marginBottom: 8 }}><Link to="/about" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>About Us</Link></li>
-            <li style={{ marginBottom: 8 }}><Link to="/login" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>Login</Link></li>
-          </ul>
-        </div>
+        {/* Middle column: quick links (hidden for delivery partners) */}
+        {user?.role !== 'partner' && (
+          <div style={{ flex: 1 }}>
+            <div style={{ color: '#f0fbff', fontWeight: 700, marginBottom: 8 }}>Quick Links</div>
+            <ul style={{ marginTop: 8, listStyle: 'none', padding: 0, color: 'rgba(255,255,255,0.85)' }}>
+              <li style={{ marginBottom: 8 }}><Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>Home</Link></li>
+              <li style={{ marginBottom: 8 }}><Link to="/about" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>About Us</Link></li>
+              <li style={{ marginBottom: 8 }}>
+                {user ? (
+                  <Link to="/orders" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>My Orders</Link>
+                ) : (
+                  <Link to="/login" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>Login</Link>
+                )}
+              </li>
+            </ul>
+          </div>
+        )}
 
         {/* Right column: contact */}
         <div style={{ flex: 1, maxWidth: 320 }}>

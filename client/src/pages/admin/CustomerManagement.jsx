@@ -48,7 +48,7 @@ const CustomerManagement = () => {
 
   const handleDelete = async (customerId) => {
     const isConfirmed = window.confirm(
-      'Are you sure you want to delete this customer? This cannot be undone.'
+      'Are you sure you want to delete this customer? This action cannot be undone.'
     );
     if (!isConfirmed) return;
 
@@ -64,7 +64,7 @@ const CustomerManagement = () => {
   };
 
   return (
-    <div style={{ padding: '24px 16px', maxWidth: 1280, margin: '0 auto' }}>
+    <div style={{ padding: '24px 16px', maxWidth: 1024, margin: '0 auto' }}>
       {/* Page header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', margin: 0 }}>
@@ -209,7 +209,7 @@ const CustomerManagement = () => {
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                         <button
                           type="button"
                           onClick={() => setDetailCustomer(customer)}
@@ -251,6 +251,59 @@ const CustomerManagement = () => {
               )}
             </tbody>
           </table>
+        </div>
+        {/* Row count and pagination placeholder */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+            padding: '12px 16px',
+            borderTop: '1px solid #e5e7eb',
+            background: '#fafafa',
+            fontSize: 13,
+            color: '#64748b',
+          }}
+        >
+          <span>
+            Showing {loading ? 0 : filteredCustomers.length} customer{filteredCustomers.length !== 1 ? 's' : ''}
+          </span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              disabled
+              style={{
+                padding: '6px 12px',
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#94a3b8',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                borderRadius: 6,
+                cursor: 'not-allowed',
+              }}
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              disabled
+              style={{
+                padding: '6px 12px',
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#94a3b8',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                borderRadius: 6,
+                cursor: 'not-allowed',
+              }}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 

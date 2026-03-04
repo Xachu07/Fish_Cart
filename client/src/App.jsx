@@ -25,6 +25,7 @@ import CustomerManagement from './pages/admin/CustomerManagement';
 import About from './pages/About';
 import PartnerLayout from './pages/partner/PartnerLayout';
 import PartnerDashboard from './pages/partner/PartnerDashboard';
+import DeliveryHistory from './pages/partner/DeliveryHistory';
 import GuestHome from './pages/GuestHome';
 import DailyCatchPage from './pages/DailyCatchPage';
 
@@ -238,6 +239,16 @@ function AppContent() {
             <PartnerRoute>
               <PartnerLayout>
                 <Profile />
+              </PartnerLayout>
+            </PartnerRoute>
+          }
+        />
+        <Route
+          path="/partner/history"
+          element={
+            <PartnerRoute>
+              <PartnerLayout>
+                <DeliveryHistory />
               </PartnerLayout>
             </PartnerRoute>
           }

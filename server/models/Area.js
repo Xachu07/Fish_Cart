@@ -8,6 +8,13 @@ const areaSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    areaCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      maxlength: 3,
+      default: '',
+    },
     deliveryFee: {
       type: Number,
       default: 0,

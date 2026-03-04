@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const CashTransfer = require('../models/CashTransfer');
 const { auth, adminAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -53,23 +54,85 @@ router.get('/partners/overview', auth, adminAuth, async (req, res) => {
       if (o.status !== 'Delivered' && o.paymentMethod !== 'PREPAID') byPartner[id].cashToCollect += o.totalAmount || 0;
       if (o.status === 'Out for Delivery') byPartner[id].onRoute = true;
     });
+    // Cash transfers for this date (partner marked as transferred; admin can verify)
+    const partnerIds = partners.map((p) => p._id);
+    const transfers = await CashTransfer.find({ partnerId: { $in: partnerIds }, date: dateStr }).lean();
+    const transferByPartner = {};
+    transfers.forEach((t) => {
+      transferByPartner[t.partnerId.toString()] = t;
+    });
+    // Consider "logged in" if partner had activity in last 15 minutes
+    const ACTIVE_THRESHOLD_MS = 15 * 60 * 1000;
+    const now = Date.now();
+
     const list = partners.map((p) => {
       const id = p._id.toString();
       const stats = byPartner[id] || { total: 0, delivered: 0, cashToCollect: 0, onRoute: false };
       let currentStatus = 'Available';
-      if (p.isBlocked) currentStatus = 'Off Duty';
-      else if (stats.onRoute) currentStatus = 'On Route';
+      const lastActive = p.lastActiveAt ? new Date(p.lastActiveAt).getTime() : 0;
+      const isLoggedIn = lastActive && (now - lastActive) < ACTIVE_THRESHOLD_MS;
+      if (p.isBlocked || !isLoggedIn) {
+        currentStatus = 'Off duty';
+      } else if (stats.onRoute) {
+        currentStatus = 'Delivering';
+      } else {
+        currentStatus = 'Available';
+      }
+      const cashTransfer = transferByPartner[id] || null;
       return {
         ...p.toObject(),
         todayLoad: stats.total,
         completedDeliveries: stats.delivered,
         cashToCollect: stats.cashToCollect,
         currentStatus,
+        cashTransfer: cashTransfer ? { _id: cashTransfer._id, amount: cashTransfer.amount, status: cashTransfer.status, transferredAt: cashTransfer.transferredAt } : null,
       };
     });
     res.json(list);
   } catch (err) {
     console.error('Partners overview error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/admin/verified-transfers?date=YYYY-MM-DD – total amount of verified transfers for that date (for dashboard revenue)
+router.get('/verified-transfers', auth, adminAuth, async (req, res) => {
+  try {
+    const dateStr = (req.query.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return res.status(400).json({ message: 'date (YYYY-MM-DD) required' });
+    }
+    const result = await CashTransfer.aggregate([
+      { $match: { date: dateStr, status: 'verified' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+    const total = result[0]?.total ?? 0;
+    res.json({ total });
+  } catch (err) {
+    console.error('Verified transfers error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT /api/admin/partners/cash-transfer/verify – admin marks partner's cash transfer as verified; amount counts toward revenue
+// Body: { partnerId, date }
+router.put('/partners/cash-transfer/verify', auth, adminAuth, async (req, res) => {
+  try {
+    const { partnerId, date } = req.body;
+    if (!partnerId || !date || !/^\d{4}-\d{2}-\d{2}$/.test(String(date).trim())) {
+      return res.status(400).json({ message: 'partnerId and date (YYYY-MM-DD) required' });
+    }
+    const transfer = await CashTransfer.findOneAndUpdate(
+      { partnerId, date: String(date).trim() },
+      { status: 'verified', verifiedBy: req.user._id, verifiedAt: new Date() },
+      { new: true }
+    );
+    if (!transfer) {
+      return res.status(404).json({ message: 'No transfer record found for this partner and date' });
+    }
+    res.json(transfer);
+  } catch (err) {
+    console.error('Verify cash transfer error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

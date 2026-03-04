@@ -7,7 +7,6 @@ const PartnerHeader = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [online, setOnline] = useState(true);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -79,26 +78,11 @@ const PartnerHeader = () => {
         </div>
 
         <nav style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
-          <Link to="/partner" style={{ padding: '6px 14px', borderRadius: 20, background: 'rgba(15,118,110,0.06)', color: 'var(--sea-600)', textDecoration: 'none', fontSize: 14 }}>My Deliveries</Link>
+          <Link to="/partner" style={{ padding: '6px 14px', borderRadius: 20, background: 'rgba(15,118,110,0.06)', color: 'var(--sea-600)', textDecoration: 'none', fontSize: 14 }}>Delivery</Link>
+          <Link to="/partner/history" style={{ padding: '6px 14px', borderRadius: 20, color: '#475569', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Delivery History</Link>
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button
-            onClick={() => setOnline((s) => !s)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 999,
-              fontSize: 14,
-              fontWeight: 600,
-              background: online ? 'var(--sea-600)' : '#f1f5f9',
-              color: online ? '#fff' : '#334155',
-              border: '1px solid transparent',
-              cursor: 'pointer',
-            }}
-          >
-            {online ? 'Online' : 'Offline'}
-          </button>
-
           <div ref={dropdownRef} style={{ position: 'relative' }}>
             <button
               type="button"

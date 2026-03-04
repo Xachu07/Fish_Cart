@@ -134,15 +134,15 @@ export default function DailyCatchPage() {
                 }}
               >
                 {/* Image: fixed-height container so image never blows up */}
-                <div style={{ width: '100%', height: 140, overflow: 'hidden', borderRadius: 8, background: '#f1f5f9' }}>
+                <div style={{ width: '100%', height: 192, overflow: 'hidden', borderRadius: 8, background: '#f1f5f9' }}>
                   {product.imageURL ? (
                     <img
                       src={product.imageURL}
                       alt={product.fishName}
-                      style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+                      style={{ width: '100%', height: '192px', objectFit: 'cover', display: 'block' }}
                     />
                   ) : (
-                    <div style={{ width: '100%', height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>
+                    <div style={{ width: '100%', height: 192, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>
                       No image
                     </div>
                   )}

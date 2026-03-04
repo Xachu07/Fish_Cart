@@ -6,7 +6,7 @@ import PasswordInput from '../components/PasswordInput';
 
 const sectionStyle = {
   padding: '24px 16px 48px',
-  maxWidth: 900,
+  maxWidth: 1024,
   margin: '0 auto',
   fontFamily: "'Poppins', Inter, system-ui, sans-serif",
 };
@@ -105,23 +105,37 @@ const Profile = () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
     const nameTrim = (formData.name || '').trim();
-    if (!nameTrim) {
-      toast.error('Name is required');
+    if (!nameTrim || nameTrim.length < 2) {
+      toast.error('Please enter your full name');
       setLoading(false);
       return;
     }
-    if (/\d/.test(nameTrim)) {
-      toast.error('Name must not contain numbers');
+    if (!/^[A-Za-z\s.\-]+$/.test(nameTrim)) {
+      toast.error('Please enter a valid full name');
       setLoading(false);
       return;
     }
-    if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
+    const phoneDigits = (formData.phone || '').replace(/\D/g, '');
+    if (!phoneDigits || phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
       toast.error('Please enter a valid 10-digit mobile number.');
       setLoading(false);
       return;
     }
+    if (user.role !== 'admin') {
+      const addressTrim = (formData.address || '').trim();
+      if (!addressTrim || addressTrim.length < 2) {
+        toast.error('Please enter a valid delivery address');
+        setLoading(false);
+        return;
+      }
+      if (!formData.areaId) {
+        toast.error('Please select your delivery area.');
+        setLoading(false);
+        return;
+      }
+    }
     try {
-      const payload = { ...formData, name: nameTrim };
+      const payload = { ...formData, name: nameTrim, phone: phoneDigits };
       if (formData.areaId) payload.areaId = formData.areaId;
       await api.put('/auth/profile', payload);
       toast.success('Profile updated');
@@ -144,26 +158,27 @@ const Profile = () => {
   }
 
   return (
-    <div style={{ ...sectionStyle, background: 'var(--sea-50)', minHeight: '60vh' }}>
-      <h1 style={pageTitle}>My Profile</h1>
+    <div style={{ background: 'var(--sea-50)', minHeight: '60vh' }}>
+      <div style={{ ...sectionStyle }}>
+        <h1 style={pageTitle}>My Profile</h1>
 
-      {message.text && (
-        <div
-          style={{
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 20,
-            fontSize: 14,
-            background: message.type === 'success' ? '#f0fdf4' : '#fef2f2',
-            color: message.type === 'success' ? '#166534' : '#b91c1c',
-          }}
-        >
-          {message.text}
-        </div>
-      )}
+        {message.text && (
+          <div
+            style={{
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 20,
+              fontSize: 14,
+              background: message.type === 'success' ? '#f0fdf4' : '#fef2f2',
+              color: message.type === 'success' ? '#166534' : '#b91c1c',
+            }}
+          >
+            {message.text}
+          </div>
+        )}
 
-      <style>{`@media (max-width: 768px) { .profile-two-col { grid-template-columns: 1fr; } }`}</style>
-      <div className="profile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+        <style>{`@media (max-width: 768px) { .profile-two-col { grid-template-columns: 1fr; } }`}</style>
+        <div className="profile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
         <div>
           {user.role === 'partner' ? (
             <>
@@ -183,7 +198,7 @@ const Profile = () => {
                     <div style={valueStyle}>{user.email || '—'}</div>
                   </div>
                   <div>
-                    <span style={labelStyle}>Area of service (assigned by admin)</span>
+                    <span style={labelStyle}>Delivery area</span>
                     <div style={valueStyle}>{user.areaOfService?.name || '—'}</div>
                   </div>
                 </div>
@@ -206,6 +221,18 @@ const Profile = () => {
                     <span style={labelStyle}>Email</span>
                     <div style={valueStyle}>{user.email || '—'}</div>
                   </div>
+                  {user.role !== 'admin' && (
+                    <>
+                      <div>
+                        <span style={labelStyle}>Address</span>
+                        <div style={valueStyle}>{user.address || formData.address || '—'}</div>
+                      </div>
+                      <div>
+                        <span style={labelStyle}>Delivery Area</span>
+                        <div style={valueStyle}>{user.areaOfService?.name || areas.find((a) => a._id === formData.areaId)?.name || '—'}</div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -257,9 +284,10 @@ const Profile = () => {
                           name="areaId"
                           value={formData.areaId || ''}
                           onChange={handleChange}
+                          required
                           style={inputStyle}
                         >
-                          <option value="">Select area (optional)</option>
+                          <option value="">Select your area</option>
                           {areas.map((a) => (
                             <option key={a._id} value={a._id}>{a.name}</option>
                           ))}
@@ -288,6 +316,7 @@ const Profile = () => {
             </div>
           )}
         </aside>
+        </div>
       </div>
     </div>
   );
@@ -404,7 +433,7 @@ const ChangeEmailForm = ({ inputStyle, btnPrimary, msgError, msgSuccess }) => {
         type="email"
         value={form.newEmail}
         onChange={onChange}
-        placeholder="New email (e.g. you@example.com)"
+        placeholder="name@example.com"
         style={inputStyle}
       />
       {msg && <div style={msg.includes('Failed') || msg.includes('incorrect') ? msgError : msgSuccess}>{msg}</div>}
