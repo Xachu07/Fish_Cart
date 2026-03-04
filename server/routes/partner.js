@@ -47,7 +47,33 @@ router.get('/cash-transfer', auth, partnerAuth, async (req, res) => {
   }
 });
 
-// GET /api/partner/delivery-history – list of dates with delivered count and cash collected (COD only)
+// GET /api/partner/delivery-history/orders?date=YYYY-MM-DD – delivered orders for that date (for view details)
+// Must be defined before /delivery-history so Express matches the full path
+router.get('/delivery-history/orders', auth, partnerAuth, async (req, res) => {
+  try {
+    const dateStr = (req.query.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return res.status(400).json({ message: 'Valid date (YYYY-MM-DD) required' });
+    }
+    const start = new Date(dateStr + 'T00:00:00.000Z');
+    const end = new Date(dateStr + 'T23:59:59.999Z');
+    const orders = await Order.find({
+      assignedPartnerId: req.user._id,
+      status: 'Delivered',
+      createdAt: { $gte: start, $lte: end },
+    })
+      .populate('userId', 'name phone address')
+      .populate('areaId', 'name')
+      .lean()
+      .sort({ createdAt: 1 });
+    res.json(orders);
+  } catch (err) {
+    console.error('Delivery history orders error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/partner/delivery-history – list of dates with delivered count, cash collected (COD), and transfer verification
 router.get('/delivery-history', auth, partnerAuth, async (req, res) => {
   try {
     const orders = await Order.find({
@@ -70,7 +96,20 @@ router.get('/delivery-history', auth, partnerAuth, async (req, res) => {
       byDate[dateStr].deliveriesCount += 1;
       if (o.paymentMethod !== 'PREPAID') byDate[dateStr].cashCollected += Number(o.totalAmount) || 0;
     });
-    const list = Object.values(byDate).sort((a, b) => (b.date > a.date ? 1 : -1));
+    const dates = Object.keys(byDate);
+    const transfers = await CashTransfer.find({ partnerId: req.user._id, date: { $in: dates } })
+      .select('date status')
+      .lean();
+    const transferByDate = {};
+    transfers.forEach((t) => {
+      transferByDate[t.date] = t.status;
+    });
+    const list = Object.values(byDate)
+      .sort((a, b) => (b.date > a.date ? 1 : -1))
+      .map((row) => ({
+        ...row,
+        transferStatus: transferByDate[row.date] || null,
+      }));
     res.json(list);
   } catch (err) {
     console.error('Delivery history error:', err);

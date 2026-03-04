@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 
 const LOW_STOCK_THRESHOLD = 5;
 const RUPEES = '\u20B9'; // ₹
+const EM_DASH = '\u2014'; // —
 
 function todayDateStr() {
   const d = new Date();
@@ -73,7 +74,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const getOrderDisplayId = (order) => order?.displayId || (order?._id ? `#${String(order._id).slice(-8)}` : 'â€”');
+  const getOrderDisplayId = (order) => order?.displayId || (order?._id ? `#${String(order._id).slice(-8)}` : EM_DASH);
 
   const isSameDay = (d1, d2) =>
     d1.getFullYear() === d2.getFullYear() &&
@@ -174,7 +175,7 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* 1. Dashboard â€“ 4 cards */}
+      {/* 1. Dashboard - 4 cards */}
       <section style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: '#64748b', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dashboard</h2>
@@ -309,7 +310,7 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* 3. Low Stock Alerts + 4. Recent Orders â€“ side by side */}
+      {/* 3. Low Stock Alerts + 4. Recent Orders - side by side */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
         {/* Low Stock Alerts */}
         <section style={sectionStyle}>
@@ -336,9 +337,9 @@ export default function AdminDashboard() {
                 >
                   {p.fishName}
                   {p.status === 'Sold Out' ? (
-                    <span style={{ fontWeight: 600, marginLeft: 6 }}>â€” Out of Stock</span>
+                    <span style={{ fontWeight: 600, marginLeft: 6 }}>{EM_DASH} Out of Stock</span>
                   ) : (
-                    <span style={{ color: '#b45309', marginLeft: 6 }}>â€” Only {p.stockQuantity} kg left</span>
+                    <span style={{ color: '#b45309', marginLeft: 6 }}>{EM_DASH} Only {p.stockQuantity} kg left</span>
                   )}
                 </li>
               ))}
@@ -346,7 +347,7 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        {/* Recent Orders â€“ mini table */}
+        {/* Recent Orders - mini table */}
         <section style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Recent Orders</h2>
@@ -377,7 +378,7 @@ export default function AdminDashboard() {
                   {recentOrders.map((o) => (
                     <tr key={o._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '10px 6px 10px 0', color: '#0f172a', fontFamily: 'monospace', fontSize: 12 }}>{getOrderDisplayId(o)}</td>
-                      <td style={{ padding: '10px 6px', color: '#0f172a' }}>{o.userId?.name || 'â€”'}</td>
+                      <td style={{ padding: '10px 6px', color: '#0f172a' }}>{o.userId?.name || EM_DASH}</td>
                       <td style={{ padding: '10px 6px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {(o.items || []).map((i) => `${i.fishName} (${i.qty}kg)`).join(', ')}
                       </td>

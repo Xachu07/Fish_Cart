@@ -328,6 +328,31 @@ router.get('/partner/cash-transfer', auth, partnerAuth, async (req, res) => {
   }
 });
 
+// GET /api/orders/partner/delivery-history/orders?date=YYYY-MM-DD – delivered orders for that date (partner view details)
+router.get('/partner/delivery-history/orders', auth, partnerAuth, async (req, res) => {
+  try {
+    const dateStr = (req.query.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return res.status(400).json({ message: 'Valid date (YYYY-MM-DD) required' });
+    }
+    const start = new Date(dateStr + 'T00:00:00.000Z');
+    const end = new Date(dateStr + 'T23:59:59.999Z');
+    const orders = await Order.find({
+      assignedPartnerId: req.user._id,
+      status: 'Delivered',
+      createdAt: { $gte: start, $lte: end },
+    })
+      .populate('userId', 'name phone address')
+      .populate('areaId', 'name')
+      .lean()
+      .sort({ createdAt: 1 });
+    res.json(orders);
+  } catch (err) {
+    console.error('Delivery history orders error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // GET single order
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -351,26 +376,6 @@ router.get('/:id', auth, async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Get order error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// PUT report issue on order (Partner)
-router.put('/:id/issue', auth, partnerAuth, async (req, res) => {
-  try {
-    const { issue } = req.body;
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (order.assignedPartnerId?.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    order.issueReported = issue || null;
-    await order.save();
-    await order.populate('userId', 'name email phone address');
-    await order.populate('assignedPartnerId', 'name phone');
-    res.json(order);
-  } catch (error) {
-    console.error('Report issue error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

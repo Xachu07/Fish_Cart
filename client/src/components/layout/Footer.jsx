@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Fish } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Footer() {
@@ -9,7 +10,12 @@ export default function Footer() {
       <div style={{ maxWidth: 1150, margin: '0 auto', padding: '48px 20px', display: 'flex', gap: 24, alignItems: 'flex-start', justifyContent: 'space-between' }}>
         {/* Left column: brand + tagline */}
         <div style={{ flex: 1, maxWidth: 360 }}>
-          <div style={{ fontWeight: 800, color: '#f0fbff', fontSize: 20 }}>Fish Cart</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Fish size={22} style={{ color: '#7dd3fc' }} />
+            </div>
+            <span style={{ fontWeight: 800, color: '#f0fbff', fontSize: 20 }}>Fish Cart</span>
+          </div>
           <div style={{ marginTop: 10, fontWeight: 700, color: '#f0fbff' }}>FROM SEA TO DOOR</div>
           <p style={{ marginTop: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
             Bringing the true taste of the ocean directly to your kitchen.

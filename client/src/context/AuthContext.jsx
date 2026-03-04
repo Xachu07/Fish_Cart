@@ -45,6 +45,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       saveTokenByRole(token, role);
       setUser(res.data.user);
+      try {
+        const meRes = await api.get('/auth/me');
+        if (meRes.data?.user) setUser(meRes.data.user);
+      } catch (_) {}
       return { success: true, user: res.data.user };
     } catch (error) {
       return {
@@ -70,6 +74,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       saveTokenByRole(token, role);
       setUser(res.data.user);
+      try {
+        const meRes = await api.get('/auth/me');
+        if (meRes.data?.user) setUser(meRes.data.user);
+      } catch (_) {}
       return { success: true };
     } catch (error) {
       return {

@@ -199,7 +199,13 @@ const Profile = () => {
                   </div>
                   <div>
                     <span style={labelStyle}>Delivery area</span>
-                    <div style={valueStyle}>{user.areaOfService?.name || '—'}</div>
+                    <div style={valueStyle}>
+                      {user.areaOfService?.name ||
+                        (user.areaOfService?.id || user.areaOfService?._id
+                          ? areas.find((a) => a._id === (user.areaOfService?.id || user.areaOfService?._id))?.name
+                          : null) ||
+                        '—'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -229,7 +235,11 @@ const Profile = () => {
                       </div>
                       <div>
                         <span style={labelStyle}>Delivery Area</span>
-                        <div style={valueStyle}>{user.areaOfService?.name || areas.find((a) => a._id === formData.areaId)?.name || '—'}</div>
+                        <div style={valueStyle}>
+                          {user.areaOfService?.name ||
+                            areas.find((a) => a._id === formData.areaId || a._id === user.areaOfService?.id || a._id === user.areaOfService?._id)?.name ||
+                            '—'}
+                        </div>
                       </div>
                     </>
                   )}

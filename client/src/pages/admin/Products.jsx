@@ -21,6 +21,7 @@ const Products = () => {
     isActive: true,
   });
   const [cleaningFeePerKg, setCleaningFeePerKg] = useState(0);
+  const [savingMap, setSavingMap] = useState({});
 
   useEffect(() => {
     fetchProducts();

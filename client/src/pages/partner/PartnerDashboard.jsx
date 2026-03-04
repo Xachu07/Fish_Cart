@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
-import { Package, AlertCircle, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { Package, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
 
 // Backend returns orders sorted by runOrder; we use that order for the list
 
@@ -15,9 +15,6 @@ function OrderListItem({
   reordering,
   expandedOrderId,
   setExpandedOrderId,
-  reportingOrderId,
-  setReportingOrderId,
-  reportIssue,
 }) {
   const isExpanded = expandedOrderId === order._id;
   const cardStyle = {
@@ -106,20 +103,6 @@ function OrderListItem({
           >
             <ChevronDown size={18} color="#475569" />
           </button>
-          <button
-            type="button"
-            onClick={() => setReportingOrderId(reportingOrderId === order._id ? null : order._id)}
-            style={{
-              padding: 6,
-              background: 'transparent',
-              border: '1px solid #e5e7eb',
-              borderRadius: 8,
-              cursor: 'pointer',
-            }}
-            title="Report issue"
-          >
-            <AlertCircle size={18} color="#64748b" />
-          </button>
         </div>
       </div>
       {isExpanded && (
@@ -132,34 +115,10 @@ function OrderListItem({
               <strong>Contact:</strong> {order.userId.phone}
             </div>
           )}
-          <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>
+          <div style={{ fontSize: 13, color: '#475569' }}>
             <strong>Items:</strong>{' '}
             {(order.items || []).map((item, i) => `${item.qty}kg ${item.fishName} (${item.preparation})`).join(', ')}
           </div>
-          {reportingOrderId === order._id && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 8 }}>Report issue</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {['Customer Not Home', 'Gate Locked', 'Wrong Address', 'Other'].map((issue) => (
-                  <button
-                    key={issue}
-                    type="button"
-                    onClick={() => reportIssue(order._id, issue)}
-                    style={{
-                      padding: '8px 12px',
-                      background: '#f1f5f9',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 8,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {issue}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -170,8 +129,7 @@ export default function PartnerDashboard() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [online, setOnline] = useState(true);
-  const [reportingOrderId, setReportingOrderId] = useState(null);
+  const [online, setOnline] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [reordering, setReordering] = useState(false);
   const [cashTransfer, setCashTransfer] = useState(null);
@@ -292,17 +250,6 @@ export default function PartnerDashboard() {
     }
   };
 
-  const reportIssue = async (orderId, issue) => {
-    try {
-      await api.put(`/orders/${orderId}/issue`, { issue });
-      setReportingOrderId(null);
-      toast.success('Issue reported');
-      await fetchAssignedOrders();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to report issue');
-    }
-  };
-
   if (loading) {
     return (
       <div style={{ padding: 24, textAlign: 'center', color: '#64748b' }}>
@@ -404,9 +351,6 @@ export default function PartnerDashboard() {
                     reordering={reordering}
                     expandedOrderId={expandedOrderId}
                     setExpandedOrderId={setExpandedOrderId}
-                    reportingOrderId={reportingOrderId}
-                    setReportingOrderId={setReportingOrderId}
-                    reportIssue={reportIssue}
                   />
                 ))}
               </div>
@@ -565,17 +509,14 @@ export default function PartnerDashboard() {
                 reordering={reordering}
                 expandedOrderId={expandedOrderId}
                 setExpandedOrderId={setExpandedOrderId}
-                reportingOrderId={reportingOrderId}
-                setReportingOrderId={setReportingOrderId}
-                reportIssue={reportIssue}
               />
             ))}
           </div>
         </section>
       )}
 
-      {/* 4. End of Shift – Total amount to transfer */}
-      {allDelivered && totalDeliveries > 0 && (
+      {/* 4. End of Shift – Total amount to transfer (hidden once admin has verified) */}
+      {allDelivered && totalDeliveries > 0 && cashTransfer?.status !== 'verified' && (
         <section
           style={{
             background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)',

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, User, LogOut } from 'lucide-react';
+import { ShoppingBag, User, LogOut, Fish } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useState, useEffect, useRef } from 'react';
@@ -78,7 +78,10 @@ const UserHeader = () => {
     <header style={{ position: 'relative', zIndex: 50, background: '#ffffff', borderBottom: '2px solid #e6f6f3' }}>
       <div style={{ maxWidth: 1150, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
+          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(15,118,110,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Fish size={20} style={{ color: 'var(--sea-600)' }} />
+            </div>
             <span style={{ fontFamily: 'Poppins, Inter, system-ui, sans-serif', fontWeight: 800, color: 'var(--sea-600)', fontSize: 18 }}>Fish Cart</span>
           </Link>
         </div>
@@ -94,6 +97,7 @@ const UserHeader = () => {
               textDecoration: 'none',
               fontSize: 14,
               fontWeight: isHome ? 600 : 500,
+              transition: 'background 0.2s ease, color 0.2s ease',
             }}
           >
             Home
@@ -108,6 +112,7 @@ const UserHeader = () => {
               textDecoration: 'none',
               fontSize: 14,
               fontWeight: isAbout ? 600 : 500,
+              transition: 'background 0.2s ease, color 0.2s ease',
             }}
           >
             About Us

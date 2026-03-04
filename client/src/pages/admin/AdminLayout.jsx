@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Users, MapPin, Truck, Menu, X, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, ClipboardList, Users, MapPin, Truck, Menu, X, User, LogOut, Fish } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const AdminLayout = ({ children }) => {
@@ -76,10 +76,11 @@ const AdminLayout = ({ children }) => {
         onMouseLeave={() => { if (!isMobile) setIsExpanded(false); }}
       >
         <div style={headerLogoStyle}>
-          <Link to="/admin" style={{ color: '#fff', fontWeight: 700, fontSize: 18, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#08303a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12c0-4.97 4.03-9 9-9s9 4.03 9 9" stroke="#7dd3fc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <Link to="/admin" style={{ color: '#fff', fontWeight: 700, fontSize: 18, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#08303a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Fish size={20} style={{ color: '#7dd3fc' }} />
             </div>
+            {isExpanded && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Fishcart</span>}
           </Link>
         </div>
         <nav style={{ ...navStyle, paddingTop: 20 }}>
@@ -127,8 +128,11 @@ const AdminLayout = ({ children }) => {
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={() => setMobileOpen(false)} />
           <aside style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: 260, background: '#0f1724', color: '#cbd5e1', padding: 16 }}>
             <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 8px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-              <Link to="/admin" style={{ color: '#fff', fontWeight: 700, fontSize: 16, textDecoration: 'none' }}>
-                FishCart <span style={{ color: '#7dd3fc' }}>Admin</span>
+              <Link to="/admin" style={{ color: '#fff', fontWeight: 700, fontSize: 18, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: '#08303a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Fish size={20} style={{ color: '#7dd3fc' }} />
+                </div>
+                Fishcart
               </Link>
               <button style={{ marginLeft: 'auto', padding: 6 }} onClick={() => setMobileOpen(false)} aria-label="Close menu">
                 <X size={18} style={{ color: '#cbd5e1' }} />
@@ -199,7 +203,10 @@ const AdminLayout = ({ children }) => {
         >
           <div style={{ maxWidth: 1150, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Link to="/admin" style={{ textDecoration: 'none' }}>
+              <Link to="/admin" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(15,118,110,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Fish size={20} style={{ color: 'var(--sea-600)' }} />
+                </div>
                 <span style={{ fontFamily: 'Poppins, Inter, system-ui, sans-serif', fontWeight: 800, color: 'var(--sea-600)', fontSize: 18 }}>Fish Cart</span>
               </Link>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginLeft: 4 }}>Admin</span>

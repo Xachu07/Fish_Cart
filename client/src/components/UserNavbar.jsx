@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, LogOut } from 'lucide-react';
+import { ShoppingBag, User, LogOut, Fish } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
@@ -23,8 +23,11 @@ const UserNavbar = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link
             to="/"
-            className="flex items-center gap-2 text-lg font-bold tracking-tight text-teal-600"
+            className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-teal-600"
           >
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-100">
+              <Fish className="h-5 w-5 text-teal-600" />
+            </div>
             <span>Fish Cart</span>
           </Link>
           <div className="flex items-center gap-4">
@@ -51,8 +54,11 @@ const UserNavbar = () => {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link
           to="/"
-          className="flex items-center gap-2 text-lg font-bold tracking-tight text-teal-600"
+          className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-teal-600"
         >
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-teal-100">
+            <Fish className="h-5 w-5 text-teal-600" />
+          </div>
           <span>Fish Cart</span>
         </Link>
 

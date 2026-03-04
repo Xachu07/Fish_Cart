@@ -79,6 +79,9 @@ router.post('/register', async (req, res) => {
       { expiresIn: '30d' }
     );
 
+    await user.populate('areaOfService', 'name deliveryFee');
+    const area = user.areaOfService;
+
     res.status(201).json({
       token,
       user: {
@@ -88,7 +91,7 @@ router.post('/register', async (req, res) => {
         role: user.role,
         phone: user.phone,
         address: user.address,
-        areaOfService: user.areaOfService || null,
+        areaOfService: area ? { id: area._id, name: area.name, deliveryFee: area.deliveryFee != null ? area.deliveryFee : 0 } : null,
       },
     });
   } catch (error) {
@@ -137,6 +140,9 @@ router.post('/login', async (req, res) => {
       { expiresIn: '30d' }
     );
 
+    await user.populate('areaOfService', 'name deliveryFee');
+    const area = user.areaOfService;
+
     res.json({
       token,
       user: {
@@ -146,6 +152,7 @@ router.post('/login', async (req, res) => {
         role: user.role,
         phone: user.phone,
         address: user.address,
+        areaOfService: area ? { id: area._id, name: area.name, deliveryFee: area.deliveryFee != null ? area.deliveryFee : 0 } : null,
       },
     });
   } catch (error) {

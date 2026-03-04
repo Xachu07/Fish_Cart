@@ -1,13 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { User, LogOut } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { User, LogOut, Fish } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const PartnerHeader = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const isMyDeliveries = location.pathname === '/partner' || location.pathname === '/partner/';
+  const isHistory = location.pathname === '/partner/history';
+
+  const navLinkBase = {
+    padding: '6px 14px',
+    borderRadius: 20,
+    textDecoration: 'none',
+    fontSize: 14,
+    transition: 'background 0.2s ease, color 0.2s ease',
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -72,14 +84,37 @@ const PartnerHeader = () => {
     <header style={{ position: 'relative', zIndex: 50, background: '#ffffff', borderBottom: '2px solid #e6f6f3' }}>
       <div style={{ maxWidth: 1150, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/partner" style={{ textDecoration: 'none' }}>
+          <Link to="/partner" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(15,118,110,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Fish size={20} style={{ color: 'var(--sea-600)' }} />
+            </div>
             <span style={{ fontFamily: 'Poppins, Inter, system-ui, sans-serif', fontWeight: 800, color: 'var(--sea-600)', fontSize: 18 }}>Fish Cart</span>
           </Link>
         </div>
 
         <nav style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
-          <Link to="/partner" style={{ padding: '6px 14px', borderRadius: 20, background: 'rgba(15,118,110,0.06)', color: 'var(--sea-600)', textDecoration: 'none', fontSize: 14 }}>Delivery</Link>
-          <Link to="/partner/history" style={{ padding: '6px 14px', borderRadius: 20, color: '#475569', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>Delivery History</Link>
+          <Link
+            to="/partner"
+            style={{
+              ...navLinkBase,
+              background: isMyDeliveries ? 'rgba(15,118,110,0.06)' : 'transparent',
+              color: isMyDeliveries ? 'var(--sea-600)' : '#475569',
+              fontWeight: isMyDeliveries ? 600 : 500,
+            }}
+          >
+            My Deliveries
+          </Link>
+          <Link
+            to="/partner/history"
+            style={{
+              ...navLinkBase,
+              background: isHistory ? 'rgba(15,118,110,0.06)' : 'transparent',
+              color: isHistory ? 'var(--sea-600)' : '#475569',
+              fontWeight: isHistory ? 600 : 500,
+            }}
+          >
+            Delivery History
+          </Link>
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
