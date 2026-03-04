@@ -11,7 +11,7 @@ export default function PasswordInput({ style = {}, ...props }) {
         style={{
           ...style,
           width: '100%',
-          paddingRight: 44,
+          paddingRight: 40,
           boxSizing: 'border-box',
         }}
       />
@@ -21,7 +21,7 @@ export default function PasswordInput({ style = {}, ...props }) {
         aria-label={show ? 'Hide password' : 'Show password'}
         style={{
           position: 'absolute',
-          right: 10,
+          right: 12,
           top: '50%',
           transform: 'translateY(-50%)',
           background: 'none',

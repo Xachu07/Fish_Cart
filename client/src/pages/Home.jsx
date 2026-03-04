@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 const CATEGORIES = ['All', 'Sea Fish', 'Shellfish', 'River Fish'];
 
@@ -72,18 +72,24 @@ export default function Home() {
     setPreparation(opts[0]);
   };
 
+  const maxQty = selectedProduct ? (selectedProduct.stockQuantity ?? 0) : 1;
+  const clampedQty = Math.min(Math.max(1, qty), maxQty);
+  const setClampedQty = (next) => {
+    const n = typeof next === 'function' ? next(qty) : next;
+    setQty(Math.min(Math.max(1, n), maxQty));
+  };
+  const modalTotal = selectedProduct ? (selectedProduct.price ?? 0) * clampedQty : 0;
+
   const confirmAddToCart = () => {
     if (!selectedProduct) return;
     const stock = selectedProduct.stockQuantity ?? 0;
-    if (qty > stock) {
-      toast.error(`Quantity cannot exceed available stock (${stock} kg).`);
-      return;
-    }
-    if (qty < 1) {
+    const finalQty = Math.min(Math.max(1, qty), stock);
+    if (finalQty < 1) {
       toast.error('Please enter at least 1 kg.');
       return;
     }
-    addToCart(selectedProduct, qty, preparation);
+    addToCart(selectedProduct, finalQty, preparation);
+    setQty(1);
     setShowModal(false);
     setSelectedProduct(null);
     toast.success(`${selectedProduct.fishName} added to cart`);
@@ -118,25 +124,52 @@ export default function Home() {
                 100% Chemical-Free and Formalin-Free<br />
                 Bringing the true taste of the ocean directly to your kitchen.
               </p>
-              <div style={{ marginTop: 18, display: 'flex', gap: 12 }}>
-                <button onClick={scrollToDailyCatch} style={{ background: 'var(--accent)', color: '#fff', padding: '10px 18px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>
-                  View Today&apos;s Catch
-                </button>
-                <button onClick={() => navigate('/about')} style={{ background: 'transparent', color: '#fff', padding: '10px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer' }}>
+              <div style={{ marginTop: 18, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                {shopStatus ? (
+                  <button onClick={scrollToDailyCatch} style={{ background: 'var(--sea-600)', color: '#fff', padding: '10px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                    View Today&apos;s Catch
+                  </button>
+                ) : (
+                  <span style={{ background: '#dc2626', color: '#fff', padding: '10px 18px', borderRadius: 8, fontWeight: 600, fontSize: 15 }}>
+                    Closed now
+                  </span>
+                )}
+                <a
+                  href="/about"
+                  onClick={(e) => { e.preventDefault(); navigate('/about'); }}
+                  style={{
+                    display: 'inline-block',
+                    padding: '10px 18px',
+                    borderRadius: 8,
+                    border: '2px solid #fff',
+                    color: '#fff',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    transition: 'background 0.2s, color 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#fff';
+                    e.currentTarget.style.color = '#0f172a';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#fff';
+                  }}
+                >
                   Learn More
-                </button>
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* DAILY CATCH - sneak peek (top 4), header links to full page */}
+      {/* Shop Status + Daily Catch - status always shown; products only when open */}
       <section ref={dailyCatchRef} style={{ padding: '32px 16px 48px', background: 'var(--sea-50)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ marginBottom: 16 }}>
-            <h2 style={{ fontSize: 24, color: 'var(--sea-600)', margin: 0, fontWeight: 700 }}>Daily Catch</h2>
-          </div>
+          {/* Shop Status above Daily Catch */}
           <div
             style={{
               padding: '10px 14px',
@@ -145,10 +178,41 @@ export default function Home() {
               borderRadius: 8,
               marginBottom: 20,
               fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 6,
             }}
           >
-            Shop Status: {shopStatus ? 'OPEN' : 'CLOSED'}
-            {!shopStatus && <span style={{ fontWeight: 400, marginLeft: 6 }}>Ordering is currently closed.</span>}
+            <span>Shop Status:</span>
+            {shopStatus ? (
+              <>
+                <span
+                  className="shop-open-dot"
+                  style={{
+                    display: 'inline-block',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: '#15803d',
+                    flexShrink: 0,
+                  }}
+                  aria-hidden
+                />
+                <span>OPEN</span>
+              </>
+            ) : (
+              <>
+                <span>CLOSED</span>
+                <span style={{ fontWeight: 400 }}>Ordering is currently closed.</span>
+              </>
+            )}
+          </div>
+
+          {shopStatus && (
+            <>
+          <div style={{ marginBottom: 16 }}>
+            <h2 style={{ fontSize: 24, color: 'var(--sea-600)', margin: 0, fontWeight: 700 }}>Daily Catch</h2>
           </div>
 
           {/* Search bar */}
@@ -265,6 +329,8 @@ export default function Home() {
               )}
             </div>
           )}
+            </>
+          )}
         </div>
       </section>
 
@@ -287,6 +353,7 @@ export default function Home() {
         >
           <div
             style={{
+              position: 'relative',
               backgroundColor: '#fff',
               padding: 24,
               borderRadius: 12,
@@ -296,17 +363,71 @@ export default function Home() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginTop: 0, color: '#0f1724' }}>{selectedProduct.fishName}</h3>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              aria-label="Close"
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                border: 'none',
+                background: '#f1f5f9',
+                color: '#64748b',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={18} />
+            </button>
+            <h3 style={{ marginTop: 0, marginRight: 36, color: '#0f1724' }}>{selectedProduct.fishName}</h3>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Quantity (kg):</label>
-              <input
-                type="number"
-                min="1"
-                max={selectedProduct.stockQuantity}
-                value={qty}
-                onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-                style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #e5e7eb', boxSizing: 'border-box' }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => setClampedQty((prev) => prev - 1)}
+                  disabled={clampedQty <= 1}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 8,
+                    border: '1px solid #e5e7eb',
+                    background: clampedQty <= 1 ? '#f1f5f9' : '#fff',
+                    color: clampedQty <= 1 ? '#94a3b8' : '#0f172a',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    cursor: clampedQty <= 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  −
+                </button>
+                <span style={{ minWidth: 36, textAlign: 'center', fontSize: 16, fontWeight: 600 }}>{clampedQty}</span>
+                <button
+                  type="button"
+                  onClick={() => setClampedQty((prev) => prev + 1)}
+                  disabled={clampedQty >= maxQty}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 8,
+                    border: '1px solid #e5e7eb',
+                    background: clampedQty >= maxQty ? '#f1f5f9' : '#fff',
+                    color: clampedQty >= maxQty ? '#94a3b8' : '#0f172a',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    cursor: clampedQty >= maxQty ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  +
+                </button>
+              </div>
+              <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>Max: {maxQty} kg in stock</div>
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Preparation:</label>
@@ -319,6 +440,9 @@ export default function Home() {
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
+            </div>
+            <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+              Total: ₹{modalTotal.toFixed(0)}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button

@@ -119,56 +119,60 @@ const Register = () => {
         <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 12px 32px rgba(12,74,63,0.06)' }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Full Name</label>
+              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Full Name <span style={{ color: '#dc2626' }}>*</span></label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
                 required
+                placeholder="e.g. Rahul K."
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Email Address</label>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Email Address <span style={{ color: '#dc2626' }}>*</span></label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  placeholder="e.g. you@example.com"
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Mobile Number</label>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Mobile Number <span style={{ color: '#dc2626' }}>*</span></label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   required
+                  placeholder="e.g. 98765 43210"
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Full Delivery Address</label>
+              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Full Delivery Address <span style={{ color: '#dc2626' }}>*</span></label>
               <textarea
                 rows={3}
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
                 required
+                placeholder="House name, street, landmark, PIN..."
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box', resize: 'none' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Delivery Area</label>
+              <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Delivery Area <span style={{ color: '#dc2626' }}>*</span></label>
               <select
                 name="areaId"
                 value={formData.areaId}
@@ -186,22 +190,24 @@ const Register = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Password</label>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Password <span style={{ color: '#dc2626' }}>*</span></label>
                 <PasswordInput
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  placeholder="At least 6 characters"
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Confirm Password</label>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--text)', fontWeight: 600, fontSize: 14 }}>Confirm Password <span style={{ color: '#dc2626' }}>*</span></label>
                 <PasswordInput
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
+                  placeholder="Re-enter password"
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e6eef0', boxSizing: 'border-box' }}
                 />
               </div>

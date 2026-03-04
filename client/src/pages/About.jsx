@@ -2,11 +2,11 @@ import React from 'react';
 
 export default function About() {
   const serviceAreas = [
-    'Azheekal',
+    'Azheekkal',
     'Karunagapally',
     'Oachira',
     'Chengannur',
-    'Mavelikara',
+    'Mavelikkara',
     'Haripad',
     'Adoor',
     'Pandalam',

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -8,8 +8,12 @@ const UserHeader = () => {
   const { user, logout } = useAuth();
   const { cart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const isHome = location.pathname === '/';
+  const isAbout = location.pathname === '/about';
 
   useEffect(() => {
     if (!open) return;
@@ -80,8 +84,34 @@ const UserHeader = () => {
         </div>
 
         <nav style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
-          <Link to="/" style={{ padding: '6px 14px', borderRadius: 20, background: 'rgba(15,118,110,0.06)', color: 'var(--sea-600)', textDecoration: 'none', fontSize: 14 }}>Home</Link>
-          <Link to="/about" style={{ color: '#0f172a', textDecoration: 'none', fontSize: 14 }}>About Us</Link>
+          <Link
+            to="/"
+            style={{
+              padding: '6px 14px',
+              borderRadius: 20,
+              background: isHome ? 'rgba(15,118,110,0.06)' : 'transparent',
+              color: isHome ? 'var(--sea-600)' : '#0f172a',
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: isHome ? 600 : 500,
+            }}
+          >
+            Home
+          </Link>
+          <Link
+            to="/about"
+            style={{
+              padding: '6px 14px',
+              borderRadius: 20,
+              background: isAbout ? 'rgba(15,118,110,0.06)' : 'transparent',
+              color: isAbout ? 'var(--sea-600)' : '#0f172a',
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: isAbout ? 600 : 500,
+            }}
+          >
+            About Us
+          </Link>
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -144,8 +174,36 @@ const UserHeader = () => {
             </>
           ) : (
             <>
-              <Link to="/login" style={{ padding: '8px 12px', color: '#374151', textDecoration: 'none', borderRadius: 6, border: '1px solid #cfe7e3' }}>Login</Link>
-              <Link to="/register" style={{ padding: '8px 12px', background: '#ff7a33', color: '#fff', borderRadius: 6, textDecoration: 'none' }}>Sign Up</Link>
+              <Link
+                to="/login"
+                style={{
+                  padding: '8px 14px',
+                  color: '#374151',
+                  textDecoration: 'none',
+                  borderRadius: 10,
+                  border: '1px solid #e2e8f0',
+                  background: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                style={{
+                  padding: '8px 14px',
+                  background: 'var(--sea-600)',
+                  color: '#fff',
+                  borderRadius: 10,
+                  textDecoration: 'none',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  border: '1px solid transparent',
+                }}
+              >
+                Sign Up
+              </Link>
             </>
           )}
         </div>

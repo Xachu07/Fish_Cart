@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
 const CATEGORIES = ['All', 'Sea Fish', 'Shellfish', 'River Fish'];
@@ -20,7 +22,9 @@ export default function DailyCatchPage() {
   const [loading, setLoading] = useState(true);
   const [shopStatus, setShopStatus] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,6 +51,11 @@ export default function DailyCatchPage() {
     : products.filter((p) => p.category === selectedCategory && p.status === 'Available' && p.isActive !== false);
 
   const handleAddToCart = (product) => {
+    if (!user) {
+      toast.error('Please login to add items to your cart.');
+      navigate('/login', { replace: true });
+      return;
+    }
     if (!product?.fishName || product?.price == null) {
       toast.error('Invalid product');
       return;

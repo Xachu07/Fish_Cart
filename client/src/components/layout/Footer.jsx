@@ -17,11 +17,9 @@ export default function Footer() {
         <div style={{ flex: 1 }}>
           <div style={{ color: '#f0fbff', fontWeight: 700, marginBottom: 8 }}>Quick Links</div>
           <ul style={{ marginTop: 8, listStyle: 'none', padding: 0, color: 'rgba(255,255,255,0.85)' }}>
-            <li style={{ marginBottom: 8 }}><Link to="/" style={{ color: 'rgba(255,255,255,0.85)' }}>Home</Link></li>
-            <li style={{ marginBottom: 8 }}><Link to="/daily" style={{ color: 'rgba(255,255,255,0.85)' }}>Daily Catch</Link></li>
-            <li style={{ marginBottom: 8 }}><Link to="/about" style={{ color: 'rgba(255,255,255,0.85)' }}>About Us</Link></li>
-            <li style={{ marginBottom: 8 }}><Link to="/login" style={{ color: 'rgba(255,255,255,0.85)' }}>Login</Link></li>
-            <li style={{ marginBottom: 8 }}><Link to="/register" style={{ color: 'rgba(255,255,255,0.85)' }}>Sign Up</Link></li>
+            <li style={{ marginBottom: 8 }}><Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>Home</Link></li>
+            <li style={{ marginBottom: 8 }}><Link to="/about" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>About Us</Link></li>
+            <li style={{ marginBottom: 8 }}><Link to="/login" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>Login</Link></li>
           </ul>
         </div>
 
