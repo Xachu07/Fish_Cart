@@ -46,16 +46,17 @@ router.post('/', auth, adminAuth, async (req, res) => {
       return res.status(400).json({ message: 'Please provide fishName, price, stockQuantity, and category' });
     }
 
+    const finalStatus = status || 'Available';
     const product = await Product.create({
       fishName,
       price,
       stockQuantity,
       imageURL: imageURL || '',
       category,
-      status: status || 'Available',
+      status: finalStatus,
       cutOptions: Array.isArray(cutOptions) ? cutOptions : [],
       cleaningFee: cleaningFee != null ? Math.max(0, Number(cleaningFee)) : 0,
-      isActive: typeof isActive === 'boolean' ? isActive : true,
+      isActive: finalStatus === 'Sold Out' ? false : (typeof isActive === 'boolean' ? isActive : true),
     });
 
     res.status(201).json(product);
@@ -85,6 +86,8 @@ router.put('/:id', auth, adminAuth, async (req, res) => {
     if (cutOptions !== undefined) product.cutOptions = Array.isArray(cutOptions) ? cutOptions : product.cutOptions;
     if (cleaningFee !== undefined) product.cleaningFee = Math.max(0, Number(cleaningFee));
     if (isActive !== undefined) product.isActive = !!isActive;
+
+    if (product.status === 'Sold Out') product.isActive = false;
 
     await product.save();
     res.json(product);

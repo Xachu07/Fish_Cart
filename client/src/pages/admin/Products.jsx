@@ -70,6 +70,7 @@ const Products = () => {
       // Determine status from stock only; do NOT change status when visibility (isActive) is toggled.
       // This preserves the product's status when admin hides it (option B).
       payload.status = payload.stockQuantity > 0 ? (payload.status || 'Available') : 'Sold Out';
+      if (payload.status === 'Sold Out') payload.isActive = false;
       if (editingProduct) {
         // optimistic update in UI
         const orig = products.find((p) => p._id === editingProduct._id);
