@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { toast } from 'react-hot-toast';
 
 const DATE_FILTERS = [
   { value: 'all', label: 'All time' },
@@ -84,8 +85,22 @@ const Orders = () => {
         return '#007bff';
       case 'Delivered':
         return '#28a745';
+      case 'Cancelled':
+        return '#6c757d';
       default:
         return '#6c757d';
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    try {
+      await api.put(`/orders/${orderId}/cancel`);
+      toast.success('Order cancelled');
+      fetchOrders();
+    } catch (err) {
+      console.error('Cancel order error', err);
+      toast.error(err.response?.data?.message || 'Failed to cancel order');
     }
   };
 
@@ -180,18 +195,29 @@ const Orders = () => {
                 marginBottom: '20px',
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '15px',
-                }}
-              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: 10 }}>
                 <div>
                   <strong>Order ID:</strong> {getOrderDisplayId(order)}
                 </div>
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {order.status === 'Pending' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCancelOrder(order._id)}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: '#b91c1c',
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancel order
+                    </button>
+                  )}
                   <span
                     style={{
                       padding: '5px 15px',
@@ -209,7 +235,7 @@ const Orders = () => {
                 <strong>Ordered on:</strong>{' '}
                 {formatOrderDate(order.createdAt)}
               </div>
-              {order.assignedPartnerId && (
+              {(order.status === 'Out for Delivery' || order.status === 'Delivered') && order.assignedPartnerId && (
                 <div style={{ marginTop: '10px' }}>
                   <strong>Assigned Driver:</strong> {order.assignedPartnerId.name}
                   {order.assignedPartnerId.phone && ` - ${order.assignedPartnerId.phone}`}
@@ -226,7 +252,15 @@ const Orders = () => {
                 </ul>
               </div>
               <div style={{ marginTop: '15px', textAlign: 'right' }}>
-                <strong style={{ fontSize: '18px' }}>Total: ₹{order.totalAmount} ({getPaymentLabel(order)})</strong>
+                {order.status === 'Cancelled' ? (
+                  order.paymentMethod === 'PREPAID' ? (
+                    <strong style={{ fontSize: '18px' }}>Total: ₹{order.totalAmount} (Refunded)</strong>
+                  ) : (
+                    <strong style={{ fontSize: '18px', color: '#64748b' }}>Order cancelled (COD – no amount charged)</strong>
+                  )
+                ) : (
+                  <strong style={{ fontSize: '18px' }}>Total: ₹{order.totalAmount} ({getPaymentLabel(order)})</strong>
+                )}
               </div>
             </div>
           ))}

@@ -1,0 +1,133 @@
+# Fish Cart – Database Schema Documentation
+# All collections (tables) and their fields with: Field Name, Data Type, Constraints, Required, Description
+
+================================================================================
+COLLECTION: users
+================================================================================
+Mongoose model: User
+
+| Field Name     | Data Type        | Constraints                    | Required | Description                                      |
+|----------------|------------------|--------------------------------|----------|--------------------------------------------------|
+| name           | String           | trim                           | Yes      | Full name of the user                            |
+| email          | String           | unique, lowercase, trim        | Yes      | Email address (used for login)                   |
+| password       | String           | —                              | Yes      | Hashed password                                  |
+| phone          | String           | trim                           | No       | Contact phone number                              |
+| address        | String           | trim                           | No       | Delivery address (for customers)                  |
+| areaOfService  | ObjectId         | ref: 'Area'                    | No       | Delivery area assigned (for partners); null if N/A |
+| role           | String           | enum: 'user', 'admin', 'partner' | No     | User role; default 'user'                        |
+| status         | String           | enum: 'pending', 'approved', 'rejected' | No  | Account status; default 'pending'                 |
+| isBlocked      | Boolean          | —                              | No       | Whether account is blocked; default false         |
+| lastActiveAt   | Date             | —                              | No       | Last activity timestamp (for partner availability) |
+| createdAt      | Date             | (auto)                         | —        | Record creation time (timestamps)                 |
+| updatedAt      | Date             | (auto)                         | —        | Record last update time (timestamps)              |
+
+================================================================================
+COLLECTION: products
+================================================================================
+Mongoose model: Product (Daily Catch / inventory)
+
+| Field Name     | Data Type        | Constraints                    | Required | Description                                      |
+|----------------|------------------|--------------------------------|----------|--------------------------------------------------|
+| fishName       | String           | trim                           | Yes      | Name of the fish/product                         |
+| price          | Number           | min: 0                         | Yes      | Price per kg (INR)                               |
+| stockQuantity  | Number           | min: 0                         | Yes      | Available quantity in kg                         |
+| imageURL       | String           | —                              | No       | URL of product image; default ''                  |
+| category       | String           | enum: 'Sea Fish', 'Shellfish', 'River Fish' | Yes | Product category                         |
+| status         | String           | enum: 'Available', 'Sold Out'   | No       | Availability status; default 'Available'         |
+| cutOptions     | [String]         | —                              | No       | Array of preparation options (e.g. Whole, Cleaned) |
+| cleaningFee    | Number           | min: 0                         | No       | Cleaning fee per kg (INR); default 0             |
+| isActive       | Boolean          | —                              | No       | Visibility to customers; default true            |
+| createdAt      | Date             | (auto)                         | —        | Record creation time (timestamps)                 |
+| updatedAt      | Date             | (auto)                         | —        | Record last update time (timestamps)              |
+
+================================================================================
+COLLECTION: orders
+================================================================================
+Mongoose model: Order
+
+| Field Name        | Data Type        | Constraints                    | Required | Description                                      |
+|-------------------|------------------|--------------------------------|----------|--------------------------------------------------|
+| displayId         | String           | trim                           | No       | Human-readable order ID (e.g. FC-001)             |
+| areaId            | ObjectId         | ref: 'Area'                    | No       | Delivery area for the order                      |
+| userId             | ObjectId         | ref: 'User'                    | Yes      | Customer who placed the order                    |
+| items             | Array (sub-doc)  | —                              | Yes      | Line items; see Order Item sub-schema below      |
+| totalAmount       | Number           | min: 0                         | Yes      | Total order amount (INR)                         |
+| status            | String           | enum: 'Pending', 'Packed', 'Out for Delivery', 'Delivered' | No | Order status; default 'Pending'    |
+| assignedPartnerId | ObjectId         | ref: 'User'                    | No       | Delivery partner assigned to this order          |
+| runOrder          | Number           | —                              | No       | Sequence for partner delivery route; default 0   |
+| paymentMethod     | String           | enum: 'PREPAID', 'COD'         | No       | Payment method; default 'COD'                    |
+| issueReported     | String           | —                              | No       | Issue reported by partner (if any)               |
+| deliveryFee       | Number           | min: 0                         | No       | Delivery fee for this order; default 0           |
+| deliveryOverride  | Object (sub-doc) | —                              | No       | Override name, phone, address, areaId for delivery |
+| createdAt         | Date             | (auto)                         | —        | Order creation time (timestamps)                 |
+| updatedAt         | Date             | (auto)                         | —        | Order last update time (timestamps)               |
+
+--- Order Item (embedded in orders.items) ---
+
+| Field Name   | Data Type | Constraints                                      | Required | Description              |
+|--------------|-----------|--------------------------------------------------|----------|--------------------------|
+| fishName     | String    | —                                                | Yes      | Name of fish             |
+| qty          | Number    | min: 1                                           | Yes      | Quantity in kg           |
+| preparation  | String    | enum: 'Whole', 'Cleaned', 'Curry Piece', 'Fry Cut' | Yes   | Preparation type         |
+
+--- deliveryOverride (embedded in orders) ---
+
+| Field Name | Data Type | Constraints   | Required | Description           |
+|------------|-----------|---------------|----------|------------------------|
+| name       | String    | —             | No       | Override delivery name |
+| phone      | String    | —             | No       | Override phone         |
+| address    | String    | —             | No       | Override address       |
+| areaId     | ObjectId  | ref: 'Area'   | No       | Override area          |
+
+================================================================================
+COLLECTION: areas
+================================================================================
+Mongoose model: Area (delivery areas)
+
+| Field Name   | Data Type | Constraints     | Required | Description                          |
+|--------------|-----------|-----------------|----------|--------------------------------------|
+| name         | String    | unique, trim    | Yes      | Area name (e.g. Adoor, Kayamkulam)   |
+| areaCode     | String    | trim, uppercase, maxlength: 3 | No | Short code (e.g. ADO, KYM)     |
+| deliveryFee  | Number    | min: 0          | No       | Delivery fee for this area (INR); default 0 |
+| createdAt    | Date      | (auto)          | —        | Record creation time (timestamps)    |
+| updatedAt    | Date      | (auto)          | —        | Record last update time (timestamps) |
+
+================================================================================
+COLLECTION: shopstatuses
+================================================================================
+Mongoose model: ShopStatus (single-document config: ordering window)
+
+| Field Name  | Data Type | Constraints | Required | Description                                |
+|-------------|-----------|-------------|----------|--------------------------------------------|
+| isOpen      | Boolean   | —           | No       | Whether ordering is open; default false    |
+| cleaningFee | Number    | min: 0      | No       | Default cleaning fee per kg (INR); default 0 |
+| createdAt   | Date      | (auto)      | —        | Record creation time (timestamps)           |
+| updatedAt   | Date      | (auto)      | —        | Record last update time (timestamps)        |
+
+Note: Application uses getStatus() to ensure a single document exists.
+
+================================================================================
+COLLECTION: cashtransfers
+================================================================================
+Mongoose model: CashTransfer (partner COD handover to admin)
+
+| Field Name    | Data Type | Constraints                    | Required | Description                                  |
+|---------------|-----------|--------------------------------|----------|----------------------------------------------|
+| partnerId     | ObjectId  | ref: 'User'                    | Yes      | Delivery partner who transferred cash        |
+| date          | String    | trim (YYYY-MM-DD)              | Yes      | Business date of transfer                    |
+| amount        | Number    | min: 0                         | Yes      | Amount transferred (INR)                     |
+| status        | String    | enum: 'pending', 'verified'    | No       | Verification status; default 'pending'       |
+| transferredAt | Date      | —                              | No       | When partner marked as transferred; default now |
+| verifiedBy    | ObjectId  | ref: 'User'                    | No       | Admin who verified; null until verified      |
+| verifiedAt    | Date      | —                              | No       | When admin verified; null until verified     |
+| createdAt     | Date      | (auto)                         | —        | Record creation time (timestamps)             |
+| updatedAt     | Date      | (auto)                         | —        | Record last update time (timestamps)          |
+
+Index: Unique on (partnerId, date) — one transfer record per partner per date.
+
+================================================================================
+SUMMARY
+================================================================================
+Collections: users, products, orders, areas, shopstatuses, cashtransfers
+Database: MongoDB (via Mongoose)
+ObjectId = MongoDB ObjectId (24-char hex); ref indicates reference to another collection.

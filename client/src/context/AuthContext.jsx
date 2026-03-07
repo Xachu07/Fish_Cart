@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../utils/api';
+import { useSearchParams } from 'react-router-dom';
+import api, { setAuthToken } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -14,21 +15,31 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const asParam = searchParams.get('as'); // 'admin' | 'partner' | 'user' for multi-tab multi-account
+  const sessionRole = ['admin', 'partner', 'user'].includes(asParam) ? asParam : null;
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [sessionRole]);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('token');
+    const token = sessionRole
+      ? localStorage.getItem(`token_${sessionRole}`)
+      : localStorage.getItem('token');
+    setAuthToken(token);
     if (token) {
       try {
         const res = await api.get('/auth/me');
         setUser(res.data.user);
       } catch (error) {
         localStorage.removeItem('token');
+        if (sessionRole) localStorage.removeItem(`token_${sessionRole}`);
+        setAuthToken(null);
         setUser(null);
       }
+    } else {
+      setUser(null);
     }
     setLoading(false);
   };
@@ -44,6 +55,7 @@ export const AuthProvider = ({ children }) => {
       const role = res.data.user?.role;
       localStorage.setItem('token', token);
       saveTokenByRole(token, role);
+      setAuthToken(token);
       setUser(res.data.user);
       try {
         const meRes = await api.get('/auth/me');
@@ -73,6 +85,7 @@ export const AuthProvider = ({ children }) => {
       const role = res.data.user?.role;
       localStorage.setItem('token', token);
       saveTokenByRole(token, role);
+      setAuthToken(token);
       setUser(res.data.user);
       try {
         const meRes = await api.get('/auth/me');
@@ -91,6 +104,7 @@ export const AuthProvider = ({ children }) => {
     const role = user?.role;
     localStorage.removeItem('token');
     if (role) localStorage.removeItem(`token_${role}`);
+    setAuthToken(null);
     setUser(null);
   };
 
@@ -98,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem(`token_${role}`);
     if (!token) return null;
     localStorage.setItem('token', token);
+    setAuthToken(token);
     setLoading(true);
     try {
       const res = await api.get('/auth/me');
@@ -106,6 +121,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       localStorage.removeItem('token');
       if (role) localStorage.removeItem(`token_${role}`);
+      setAuthToken(null);
       setUser(null);
       return null;
     } finally {

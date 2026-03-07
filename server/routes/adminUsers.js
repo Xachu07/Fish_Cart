@@ -41,6 +41,7 @@ router.get('/partners/overview', auth, adminAuth, async (req, res) => {
     const end = new Date(dateStr + 'T23:59:59.999Z');
     const orderQuery = {
       assignedPartnerId: { $exists: true, $ne: null },
+      status: { $ne: 'Cancelled' },
       createdAt: { $gte: start, $lte: end },
     };
     const orders = await Order.find(orderQuery).lean();

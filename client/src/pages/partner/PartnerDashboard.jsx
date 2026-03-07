@@ -178,6 +178,24 @@ export default function PartnerDashboard() {
   const nextDelivery = pendingOrders[0] ?? null;
   const restPending = pendingOrders.slice(1);
   const allDelivered = orders.length > 0 && orders.every((o) => o.status === 'Delivered');
+  const canTurnOn = pendingOrders.length > 0;
+  const canTurnOff = pendingOrders.length === 0;
+
+  const handleShiftToggle = () => {
+    if (!online) {
+      if (!canTurnOn) {
+        toast.error('No deliveries to do. You can start your shift when you have packed orders assigned.');
+        return;
+      }
+      setOnline(true);
+    } else {
+      if (!canTurnOff) {
+        toast.error('Finish all deliveries before ending your shift.');
+        return;
+      }
+      setOnline(false);
+    }
+  };
 
   const deliveredOrderIds = useMemo(() => orders.filter((o) => o.status === 'Delivered').map((o) => o._id), [orders]);
 
@@ -224,7 +242,7 @@ export default function PartnerDashboard() {
     }
   };
 
-  const totalDeliveries = orders.length;
+  const totalDeliveries = pendingOrders.length;
   const cashToCollect = useMemo(
     () =>
       orders
@@ -276,16 +294,19 @@ export default function PartnerDashboard() {
             type="button"
             role="switch"
             aria-checked={online}
-            onClick={() => setOnline((o) => !o)}
+            aria-disabled={(!online && !canTurnOn) || (online && !canTurnOff)}
+            onClick={handleShiftToggle}
+            disabled={(!online && !canTurnOn) || (online && !canTurnOff)}
             style={{
               width: 56,
               height: 32,
               borderRadius: 16,
               border: 'none',
               background: online ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)',
-              cursor: 'pointer',
+              cursor: ((!online && !canTurnOn) || (online && !canTurnOff)) ? 'not-allowed' : 'pointer',
               position: 'relative',
               transition: 'background 0.2s',
+              opacity: ((!online && !canTurnOn) || (online && !canTurnOff)) ? 0.7 : 1,
             }}
           >
             <span
@@ -305,11 +326,26 @@ export default function PartnerDashboard() {
         </div>
         <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 12 }}>
           {online ? 'Ready for deliveries' : 'Offline'}
+          {!online && !canTurnOn && orders.length === 0 && (
+            <span style={{ display: 'block', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
+              Start shift when you have packed orders assigned
+            </span>
+          )}
+          {!online && !canTurnOn && orders.length > 0 && (
+            <span style={{ display: 'block', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
+              All done for now. Start shift when new deliveries are packed
+            </span>
+          )}
+          {online && !canTurnOff && (
+            <span style={{ display: 'block', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
+              Complete all deliveries to end shift
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 24, fontWeight: 800 }}>{totalDeliveries}</div>
-            <div style={{ fontSize: 12, opacity: 0.9 }}>Total Deliveries</div>
+            <div style={{ fontSize: 12, opacity: 0.9 }}>Deliveries to do</div>
           </div>
           <div>
             <div style={{ fontSize: 24, fontWeight: 800 }}>₹{cashToCollect.toLocaleString('en-IN')}</div>
@@ -515,8 +551,8 @@ export default function PartnerDashboard() {
         </section>
       )}
 
-      {/* 4. End of Shift – Total amount to transfer (hidden once admin has verified) */}
-      {allDelivered && totalDeliveries > 0 && cashTransfer?.status !== 'verified' && (
+      {/* 4. End of Shift – Total amount to transfer (hide once admin has verified; then partner sees "Orders to deliver" / "No deliveries assigned") */}
+      {allDelivered && orders.length > 0 && cashToSettle > 0 && cashTransfer?.status !== 'verified' && (
         <section
           style={{
             background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)',
@@ -569,12 +605,6 @@ export default function PartnerDashboard() {
         </section>
       )}
 
-      {/* Delivered list summary when there are some delivered and some pending */}
-      {orders.some((o) => o.status === 'Delivered') && !allDelivered && (
-        <div style={{ marginTop: 16, padding: 12, background: '#f0fdf4', borderRadius: 10, fontSize: 13, color: '#166534' }}>
-          {orders.filter((o) => o.status === 'Delivered').length} of {totalDeliveries} delivered
-        </div>
-      )}
     </div>
   );
 }

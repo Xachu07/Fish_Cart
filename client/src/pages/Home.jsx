@@ -78,7 +78,7 @@ export default function Home() {
     setSelectedProduct(product);
     setShowModal(true);
     setQty(1);
-    const opts = product.cutOptions && product.cutOptions.length ? product.cutOptions : ['Whole (Uncleaned)', 'Cleaned (Whole but gutted)'];
+    const opts = product.cutOptions && product.cutOptions.length ? product.cutOptions : ['Whole (Uncleaned)', 'Cleaned'];
     setPreparation(opts[0]);
   };
 
@@ -88,6 +88,7 @@ export default function Home() {
     const n = typeof next === 'function' ? next(qty) : next;
     setQty(Math.min(Math.max(1, n), maxQty));
   };
+  const prepLabel = (o) => (o === 'Cleaned (Whole but gutted)' ? 'Cleaned' : o === 'Fry Cut (Sliced)' ? 'Fry Cut' : o);
   const modalTotal = selectedProduct ? (selectedProduct.price ?? 0) * clampedQty : 0;
 
   const confirmAddToCart = () => {
@@ -363,7 +364,6 @@ export default function Home() {
             alignItems: 'center',
             zIndex: 1000,
           }}
-          onClick={() => setShowModal(false)}
         >
           <div
             style={{
@@ -450,8 +450,8 @@ export default function Home() {
                 onChange={(e) => setPreparation(e.target.value)}
                 style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', boxSizing: 'border-box' }}
               >
-                {(selectedProduct.cutOptions && selectedProduct.cutOptions.length ? selectedProduct.cutOptions : ['Whole (Uncleaned)', 'Cleaned (Whole but gutted)']).map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                {(selectedProduct.cutOptions && selectedProduct.cutOptions.length ? selectedProduct.cutOptions : ['Whole (Uncleaned)', 'Cleaned']).map((opt) => (
+                  <option key={opt} value={opt}>{prepLabel(opt)}</option>
                 ))}
               </select>
             </div>

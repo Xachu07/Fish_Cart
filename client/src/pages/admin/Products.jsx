@@ -130,10 +130,10 @@ const Products = () => {
     const name = (fishName || '').toLowerCase();
     const smallKeywords = ['sardine', 'mackerel', 'mathi', 'anchovy', 'kaima', 'sprat'];
     const largeKeywords = ['tuna', 'neymeen', 'seer', 'king', 'salmon', 'pomfret', 'tuna', 'barracuda'];
-    const allOptions = ['Whole (Uncleaned)', 'Cleaned (Whole but gutted)', 'Curry Piece', 'Fry Cut (Sliced)'];
+    const allOptions = ['Whole (Uncleaned)', 'Cleaned', 'Curry Piece', 'Fry Cut'];
     // if fishName matches small keywords -> only whole/cleaned
     if (smallKeywords.some((k) => name.includes(k))) {
-      return allOptions.filter((o) => o === 'Whole (Uncleaned)' || o === 'Cleaned (Whole but gutted)');
+      return allOptions.filter((o) => o === 'Whole (Uncleaned)' || o === 'Cleaned');
     }
     // if fishName matches large keywords -> allow all
     if (largeKeywords.some((k) => name.includes(k))) {
@@ -347,7 +347,6 @@ const Products = () => {
             alignItems: 'center',
             zIndex: 1000,
           }}
-          onClick={() => setShowModal(false)}
         >
           <div
             style={{
@@ -440,7 +439,7 @@ const Products = () => {
                 <label>Cutting / Cleaning Options:</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                   {(() => {
-                    const allOptions = ['Whole (Uncleaned)', 'Cleaned (Whole but gutted)', 'Curry Piece', 'Fry Cut (Sliced)'];
+                    const allOptions = ['Whole (Uncleaned)', 'Cleaned', 'Curry Piece', 'Fry Cut'];
                     // Show all options in Add and Update so admin can pick any; previously we filtered by fish name.
                     const optionsToShow = allOptions;
                     return optionsToShow.map((opt) => {

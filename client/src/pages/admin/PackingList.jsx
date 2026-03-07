@@ -66,7 +66,7 @@ export default function PackingList() {
 
   const ordersInArea = useMemo(() => {
     return orders.filter((o) => {
-      if (o.status === 'Delivered') return false;
+      if (o.status === 'Delivered' || o.status === 'Cancelled') return false;
       if (!selectedArea) return true;
       return getOrderArea(o) === selectedArea;
     });
@@ -119,7 +119,10 @@ export default function PackingList() {
     if (ids.length === 0) return true;
     return ids.every((id) => {
       const order = ordersInArea.find((o) => o._id === id);
-      return order && order.status !== 'Pending';
+      if (!order) return true;
+      const productItems = (order.items || []).filter((i) => i.fishName === productName);
+      if (productItems.length === 0) return true;
+      return productItems.every((i) => i.packed === true);
     });
   };
 
@@ -129,8 +132,8 @@ export default function PackingList() {
     setJustPackedProducts((prev) => new Set(prev).add(productName));
     setPackingProductName(productName);
     try {
-      await Promise.all(ids.map((id) => api.put(`/orders/${id}/status`, { status: 'Packed' })));
-      toast.success('Orders marked as packed');
+      await api.put('/orders/admin/mark-product-packed', { productName, orderIds: ids });
+      toast.success(`"${productName}" marked as packed`);
       await fetchOrders();
       setJustPackedProducts((prev) => {
         const next = new Set(prev);
@@ -143,7 +146,7 @@ export default function PackingList() {
         next.delete(productName);
         return next;
       });
-      toast.error(err.response?.data?.message || 'Failed to update orders');
+      toast.error(err.response?.data?.message || 'Failed to update');
     } finally {
       setPackingProductName(null);
     }

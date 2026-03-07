@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
 
-const STATUS_OPTIONS = ['Pending', 'Packed', 'Out for Delivery', 'Delivered'];
+const STATUS_OPTIONS = ['Pending', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -10,8 +10,7 @@ export default function AdminOrders() {
   const [partners, setPartners] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterArea, setFilterArea] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [filterDate, setFilterDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
@@ -19,8 +18,10 @@ export default function AdminOrders() {
   const fetchOrders = async () => {
     try {
       const params = {};
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
+      if (filterDate) {
+        params.dateFrom = filterDate;
+        params.dateTo = filterDate;
+      }
       const res = await api.get('/orders/admin', { params });
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
@@ -35,7 +36,7 @@ export default function AdminOrders() {
   useEffect(() => {
     setLoading(true);
     fetchOrders();
-  }, [dateFrom, dateTo]);
+  }, [filterDate]);
 
   useEffect(() => {
     fetchAreas();
@@ -167,6 +168,10 @@ export default function AdminOrders() {
       base.background = '#dcfce7';
       base.color = '#166534';
       base.borderColor = '#86efac';
+    } else if (status === 'Cancelled') {
+      base.background = '#f1f5f9';
+      base.color = '#475569';
+      base.borderColor = '#cbd5e1';
     }
     return base;
   };
@@ -174,8 +179,7 @@ export default function AdminOrders() {
   const clearFilters = () => {
     setFilterArea('');
     setFilterStatus('All');
-    setDateFrom('');
-    setDateTo('');
+    setFilterDate('');
   };
 
   return (
@@ -225,26 +229,11 @@ export default function AdminOrders() {
           </select>
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>From date</label>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>Date</label>
           <input
             type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            style={{
-              padding: '10px 14px',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              fontSize: 14,
-              background: '#fff',
-            }}
-          />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 6 }}>To date</label>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
             style={{
               padding: '10px 14px',
               border: '1px solid #e2e8f0',
@@ -343,8 +332,8 @@ export default function AdminOrders() {
                       <select
                         value={order.status}
                         onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                        disabled={updatingId === order._id}
-                        style={{ ...getStatusSelectStyle(order.status), cursor: updatingId === order._id ? 'wait' : 'pointer' }}
+                        disabled={updatingId === order._id || order.status === 'Cancelled'}
+                        style={{ ...getStatusSelectStyle(order.status), cursor: updatingId === order._id || order.status === 'Cancelled' ? 'not-allowed' : 'pointer' }}
                       >
                         {STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>{s}</option>

@@ -15,6 +15,10 @@ const orderItemSchema = new mongoose.Schema({
     enum: ['Whole', 'Cleaned', 'Curry Piece', 'Fry Cut'],
     required: true,
   },
+  packed: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const orderSchema = new mongoose.Schema(
@@ -41,7 +45,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Pending', 'Packed', 'Out for Delivery', 'Delivered'],
+      enum: ['Pending', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled'],
       default: 'Pending',
     },
     assignedPartnerId: {

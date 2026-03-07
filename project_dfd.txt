@@ -1,0 +1,295 @@
+# Fish Cart – Data Flow Diagrams (DFD)
+# Mermaid code for Level 0, Level 1, and Level 1.1–1.n
+
+================================================================================
+DFD LEVEL 0 – Context Diagram (Entire Project)
+================================================================================
+The system is represented as a single process with external entities and main
+data flows. Data stores are shown at this level as the system boundary.
+
+--- Mermaid Code (Level 0) ---
+
+flowchart LR
+    subgraph External_Entities["External Entities"]
+        E1[("Customer")]
+        E2[("Admin")]
+        E3[("Delivery Partner")]
+    end
+
+    subgraph System["Fish Cart System"]
+        P0[("0\nFish Cart\nHyperlocal Seafood\nDelivery System")]
+    end
+
+    subgraph Data_Stores["Data Stores"]
+        D1[(("D1: Users"))]
+        D2[(("D2: Products"))]
+        D3[(("D3: Orders"))]
+        D4[(("D4: Areas"))]
+        D5[(("D5: Shop Status"))]
+        D6[(("D6: Cash Transfers"))]
+    end
+
+    E1 -->|"Registration, Login,\nOrder Request,\nProfile"| P0
+    P0 -->|"Auth Token,\nDaily Catch,\nOrder Confirmation,\nOrder Status"| E1
+
+    E2 -->|"Login,\nStock Data,\nShop Toggle,\nOrder Assignment"| P0
+    P0 -->|"Dashboard,\nPacking List,\nPartner Overview,\nVerified Revenue"| E2
+
+    E3 -->|"Login,\nStatus Update,\nCash Transferred"| P0
+    P0 -->|"Assigned Orders,\nDelivery History"| E3
+
+    P0 <--> D1
+    P0 <--> D2
+    P0 <--> D3
+    P0 <--> D4
+    P0 <--> D5
+    P0 <--> D6
+
+--- End Level 0 ---
+
+
+================================================================================
+DFD LEVEL 1 – Entire Project (Major Processes)
+================================================================================
+The system is decomposed into three major processes by role (Customer, Admin,
+Delivery Partner), plus shared data stores.
+
+--- Mermaid Code (Level 1) ---
+
+flowchart TB
+    subgraph External["External Entities"]
+        Customer[("Customer")]
+        Admin[("Admin")]
+        Partner[("Delivery Partner")]
+    end
+
+    subgraph Level1_Processes["Fish Cart System - Level 1"]
+        P1[("1\nCustomer\nProcessing")]
+        P2[("2\nAdmin\nProcessing")]
+        P3[("3\nDelivery Partner\nProcessing")]
+    end
+
+    subgraph DataStores["Data Stores"]
+        D1[(("D1: Users"))]
+        D2[(("D2: Products"))]
+        D3[(("D3: Orders"))]
+        D4[(("D4: Areas"))]
+        D5[(("D5: Shop Status"))]
+        D6[(("D6: Cash Transfers"))]
+    end
+
+    Customer -->|"Register, Login,\nCart, Order"| P1
+    P1 -->|"Token, Daily Catch,\nOrder Status"| Customer
+    P1 --> D1
+    P1 --> D2
+    P1 --> D3
+    P1 --> D4
+    P1 --> D5
+    D1 --> P1
+    D2 --> P1
+    D3 --> P1
+    D4 --> P1
+    D5 --> P1
+
+    Admin -->|"Login, Stock,\nShop Toggle,\nAssign Partner"| P2
+    P2 -->|"Dashboard,\nPacking List,\nPartner Overview"| Admin
+    P2 --> D1
+    P2 --> D2
+    P2 --> D3
+    P2 --> D4
+    P2 --> D5
+    P2 --> D6
+    D1 --> P2
+    D2 --> P2
+    D3 --> P2
+    D4 --> P2
+    D5 --> P2
+    D6 --> P2
+
+    Partner -->|"Login,\nStatus, Cash Transferred"| P3
+    P3 -->|"Assigned Orders,\nDelivery History"| Partner
+    P3 --> D1
+    P3 --> D3
+    P3 --> D6
+    D1 --> P3
+    D3 --> P3
+    D6 --> P3
+
+--- End Level 1 ---
+
+
+================================================================================
+DFD LEVEL 1.1 – Customer Module
+================================================================================
+Based on project_spec: User (Customer) – Register/Login, View Daily Catch,
+Filter by Category, Select Preparation, Place Orders, View Order Status.
+
+--- Mermaid Code (Level 1.1) ---
+
+flowchart TB
+    subgraph External_Customer["External"]
+        C[("Customer")]
+    end
+
+    subgraph Customer_Module["1.1 Customer Processing"]
+        P1_1[("1.1.1\nAuth &\nProfile")]
+        P1_2[("1.1.2\nBrowse Daily\nCatch")]
+        P1_3[("1.1.3\nPlace Order")]
+        P1_4[("1.1.4\nView Order\nStatus")]
+    end
+
+    subgraph Stores_C1["Data Stores"]
+        D1[(("D1: Users"))]
+        D2[(("D2: Products"))]
+        D3[(("D3: Orders"))]
+        D4[(("D4: Areas"))]
+        D5[(("D5: Shop Status"))]
+    end
+
+    C -->|"Register, Login,\nProfile Update"| P1_1
+    P1_1 -->|"JWT, User Info,\nDelivery Area"| C
+    P1_1 <--> D1
+    P1_1 --> D4
+
+    C -->|"Category Filter,\nPreparation Choice"| P1_2
+    P1_2 -->|"Product List,\nPrice, Stock,\nCleaning Fee"| C
+    P1_2 --> D2
+    P1_2 --> D5
+
+    C -->|"Cart, Items,\nPayment Method"| P1_3
+    P1_3 -->|"Order Confirmation,\nOrder ID"| C
+    P1_3 --> D3
+    P1_3 --> D2
+    P1_3 --> D5
+
+    C -->|"Request My Orders"| P1_4
+    P1_4 -->|"Order List,\nStatus,\nAssigned Driver"| C
+    P1_4 --> D3
+
+--- End Level 1.1 ---
+
+
+================================================================================
+DFD LEVEL 1.2 – Admin Module
+================================================================================
+Based on project_spec: Admin – Login, Manage Daily Stock, Shop Status,
+Packing Lists, Assign Orders to Delivery Partners, Verify Cash Transfers.
+
+--- Mermaid Code (Level 1.2) ---
+
+flowchart TB
+    subgraph External_Admin["External"]
+        A[("Admin")]
+    end
+
+    subgraph Admin_Module["1.2 Admin Processing"]
+        P2_1[("1.2.1\nAdmin\nLogin")]
+        P2_2[("1.2.2\nManage Daily\nStock")]
+        P2_3[("1.2.3\nShop Status &\nPacking List")]
+        P2_4[("1.2.4\nOrders &\nAssign Partner")]
+        P2_5[("1.2.5\nPartner Overview &\nVerify Cash")]
+    end
+
+    subgraph Stores_A["Data Stores"]
+        D1[(("D1: Users"))]
+        D2[(("D2: Products"))]
+        D3[(("D3: Orders"))]
+        D4[(("D4: Areas"))]
+        D5[(("D5: Shop Status"))]
+        D6[(("D6: Cash Transfers"))]
+    end
+
+    A -->|"Login"| P2_1
+    P2_1 -->|"Dashboard Access"| A
+    P2_1 <--> D1
+
+    A -->|"Add/Edit/Delete\nFish, Price, Stock,\nVisibility"| P2_2
+    P2_2 -->|"Product List,\nSaved"| A
+    P2_2 <--> D2
+
+    A -->|"Open/Close Shop"| P2_3
+    P2_3 -->|"Shop Status"| A
+    P2_3 <--> D5
+    A -->|"Request Packing List"| P2_3
+    P2_3 -->|"Packing List by\nArea/Category"| A
+    P2_3 --> D3
+    P2_3 --> D2
+
+    A -->|"View Orders,\nAssign Partner"| P2_4
+    P2_4 -->|"Order List,\nAssignment Done"| A
+    P2_4 <--> D3
+    P2_4 --> D1
+
+    A -->|"View Partners,\nVerify Transfer"| P2_5
+    P2_5 -->|"Partner Overview,\nRevenue, Verified"| A
+    P2_5 <--> D1
+    P2_5 <--> D6
+    P2_5 --> D3
+
+--- End Level 1.2 ---
+
+
+================================================================================
+DFD LEVEL 1.3 – Delivery Partner Module
+================================================================================
+Based on project_spec: Delivery Partner – Login, View Assigned Deliveries,
+Update Status (Delivered, Payment Collected), Cash Transfer to Head Office.
+
+--- Mermaid Code (Level 1.3) ---
+
+flowchart TB
+    subgraph External_Partner["External"]
+        DP[("Delivery Partner")]
+    end
+
+    subgraph Partner_Module["1.3 Delivery Partner Processing"]
+        P3_1[("1.3.1\nPartner\nLogin")]
+        P3_2[("1.3.2\nView Assigned\nDeliveries")]
+        P3_3[("1.3.3\nUpdate Delivery\nStatus")]
+        P3_4[("1.3.4\nCash Transferred &\nDelivery History")]
+    end
+
+    subgraph Stores_P["Data Stores"]
+        D1[(("D1: Users"))]
+        D3[(("D3: Orders"))]
+        D6[(("D6: Cash Transfers"))]
+    end
+
+    DP -->|"Login"| P3_1
+    P3_1 -->|"Partner Dashboard"| DP
+    P3_1 <--> D1
+
+    DP -->|"Request Assigned\nOrders, Reorder"| P3_2
+    P3_2 -->|"Order List,\nAddress, Items,\nRun Order"| DP
+    P3_2 --> D3
+    P3_2 --> D1
+    D3 --> P3_2
+
+    DP -->|"Mark Out for Delivery,\nMark Delivered"| P3_3
+    P3_3 -->|"Status Updated"| DP
+    P3_3 --> D3
+
+    DP -->|"Mark Cash\nTransferred"| P3_4
+    P3_4 -->|"Transfer Record"| DP
+    P3_4 --> D6
+    DP -->|"Request Delivery\nHistory"| P3_4
+    P3_4 -->|"History by Date,\nCash Transferred"| DP
+    P3_4 --> D3
+    D6 --> P3_4
+    D3 --> P3_4
+
+--- End Level 1.3 ---
+
+
+================================================================================
+NOTES FOR MERMAID RENDERING
+================================================================================
+- Use Mermaid Live Editor (https://mermaid.live) or any Markdown viewer that
+  supports Mermaid to render these diagrams.
+- Copy each "--- Mermaid Code ... ---" block (excluding the --- lines) into
+  a ```mermaid code block in Markdown.
+- In DFD convention: ( ) = process, [ ] = entity, [( )] = data store.
+- Flows are labeled on arrows where space allows; adjust layout (TB/LR) if
+  needed for your documentation.
+
+================================================================================

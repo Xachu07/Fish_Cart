@@ -230,10 +230,45 @@ router.get('/admin', auth, adminAuth, async (req, res) => {
   }
 });
 
-// GET assigned orders (Partner) – sorted by runOrder then status (Out for Delivery first) then createdAt
+// PUT mark a product as packed in given orders (Admin) – only sets item.packed for that fish; sets order.status to Packed when all items packed
+router.put('/admin/mark-product-packed', auth, adminAuth, async (req, res) => {
+  try {
+    const { productName, orderIds } = req.body;
+    if (!productName || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({ message: 'Provide productName and orderIds array' });
+    }
+    const updated = [];
+    for (const id of orderIds) {
+      const order = await Order.findById(id);
+      if (!order || order.status === 'Cancelled') continue;
+      let hasProduct = false;
+      for (let i = 0; i < order.items.length; i++) {
+        if (order.items[i].fishName === productName) {
+          order.items[i].packed = true;
+          hasProduct = true;
+        }
+      }
+      if (!hasProduct) continue;
+      const allPacked = order.items.every((it) => it.packed === true);
+      if (allPacked) order.status = 'Packed';
+      order.markModified('items');
+      await order.save();
+      updated.push(order._id);
+    }
+    res.json({ updated: updated.length, orderIds: updated });
+  } catch (error) {
+    console.error('Mark product packed error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET assigned orders (Partner) – only Packed, Out for Delivery, Delivered (exclude Pending); sorted by runOrder then status
 router.get('/assigned', auth, partnerAuth, async (req, res) => {
   try {
-    const orders = await Order.find({ assignedPartnerId: req.user._id })
+    const orders = await Order.find({
+      assignedPartnerId: req.user._id,
+      status: { $in: ['Packed', 'Out for Delivery', 'Delivered'] },
+    })
       .populate({
         path: 'userId',
         select: 'name email phone address areaOfService',
@@ -353,6 +388,39 @@ router.get('/partner/delivery-history/orders', auth, partnerAuth, async (req, re
   }
 });
 
+// PUT cancel order (Customer only, status must be Pending) – restores product stock
+router.put('/:id/cancel', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'You can only cancel your own order' });
+    }
+    if (order.status !== 'Pending') {
+      return res.status(400).json({ message: 'Only pending orders can be cancelled' });
+    }
+    order.status = 'Cancelled';
+    await order.save();
+
+    for (const item of order.items || []) {
+      const product = await Product.findOne({ fishName: item.fishName });
+      if (product) {
+        product.stockQuantity = (Number(product.stockQuantity) || 0) + (Number(item.qty) || 0);
+        if (product.status === 'Sold Out' && product.stockQuantity > 0) product.status = 'Available';
+        await product.save();
+      }
+    }
+
+    const populated = await Order.findById(order._id)
+      .populate('userId', 'name email phone address')
+      .populate('assignedPartnerId', 'name phone');
+    res.json(populated);
+  } catch (err) {
+    console.error('Cancel order error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // GET single order
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -393,6 +461,9 @@ router.put('/:id/status', auth, async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+    if (order.status === 'Cancelled') {
+      return res.status(400).json({ message: 'Cannot update status of a cancelled order' });
     }
 
     // Permission check

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PasswordInput from '../components/PasswordInput';
 
@@ -10,6 +10,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,7 +22,8 @@ const Login = () => {
         // Redirect after a tick so auth context state is committed before AdminRoute checks user
         const role = result.user?.role;
         const path = role === 'admin' ? '/admin' : role === 'partner' ? '/partner' : '/';
-        setTimeout(() => navigate(path, { replace: true }), 0);
+        const search = location.search || '';
+        setTimeout(() => navigate(path + search, { replace: true }), 0);
       } else {
         setError(result.message || 'Login failed');
       }

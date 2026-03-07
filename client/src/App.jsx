@@ -32,15 +32,17 @@ import DailyCatchPage from './pages/DailyCatchPage';
 // Protected Route Component (logged-in)
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
-  return user ? children : <Navigate to="/login" />;
+  return user ? children : <Navigate to={`/login${location.search}`} />;
 };
 
 // Admin-only route
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={`/login${location.search}`} />;
   if (user.role !== 'admin') return <Navigate to="/" />;
   return children;
 };
@@ -48,8 +50,9 @@ const AdminRoute = ({ children }) => {
 // Partner-only route
 const PartnerRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={`/login${location.search}`} />;
   if (user.role !== 'partner') return <Navigate to="/" />;
   return children;
 };

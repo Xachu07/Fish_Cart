@@ -83,8 +83,8 @@ export default function AdminDashboard() {
 
   const pulseDateObj = pulseDate ? new Date(pulseDate + 'T12:00:00') : null;
   const pulseOrders = pulseDateObj
-    ? orders.filter((o) => isSameDay(new Date(o.createdAt), pulseDateObj))
-    : orders;
+    ? orders.filter((o) => isSameDay(new Date(o.createdAt), pulseDateObj) && o.status !== 'Cancelled')
+    : orders.filter((o) => o.status !== 'Cancelled');
   const pulseOrderCount = pulseOrders.length;
   const pulsePendingDeliveries = pulseOrders.filter((o) => o.status !== 'Delivered').length;
   const pulseCashToCollect = pulseOrders
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
   const lowStockProducts = products.filter(
     (p) => p.isActive !== false && (Number(p.stockQuantity) <= LOW_STOCK_THRESHOLD || p.status === 'Sold Out')
   );
-  const recentOrders = orders.slice(0, 5);
+  const recentOrders = orders.filter((o) => o.status !== 'Cancelled').slice(0, 5);
 
   const cardStyle = {
     background: '#fff',
