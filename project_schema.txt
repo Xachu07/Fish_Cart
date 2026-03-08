@@ -52,7 +52,7 @@ Mongoose model: Order
 | userId             | ObjectId         | ref: 'User'                    | Yes      | Customer who placed the order                    |
 | items             | Array (sub-doc)  | —                              | Yes      | Line items; see Order Item sub-schema below      |
 | totalAmount       | Number           | min: 0                         | Yes      | Total order amount (INR)                         |
-| status            | String           | enum: 'Pending', 'Packed', 'Out for Delivery', 'Delivered' | No | Order status; default 'Pending'    |
+| status            | String           | enum: 'Pending', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled' | No | Order status; default 'Pending'    |
 | assignedPartnerId | ObjectId         | ref: 'User'                    | No       | Delivery partner assigned to this order          |
 | runOrder          | Number           | —                              | No       | Sequence for partner delivery route; default 0   |
 | paymentMethod     | String           | enum: 'PREPAID', 'COD'         | No       | Payment method; default 'COD'                    |
@@ -69,6 +69,7 @@ Mongoose model: Order
 | fishName     | String    | —                                                | Yes      | Name of fish             |
 | qty          | Number    | min: 1                                           | Yes      | Quantity in kg           |
 | preparation  | String    | enum: 'Whole', 'Cleaned', 'Curry Piece', 'Fry Cut' | Yes   | Preparation type         |
+| packed       | Boolean   | —                                                | No       | Marked packed in admin packing list; default false |
 
 --- deliveryOverride (embedded in orders) ---
 

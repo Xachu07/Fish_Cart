@@ -293,3 +293,18 @@ NOTES FOR MERMAID RENDERING
   needed for your documentation.
 
 ================================================================================
+UPDATES (aligned with implementation)
+================================================================================
+- Customer: Order cancellation (Pending orders only); cancelled orders excluded
+  from admin metrics, packing list, and partner assigned list.
+- Admin Packing List: Mark packed is per product (fish); only that product's
+  line items are marked packed; order status becomes Packed when all items packed.
+  API: PUT /orders/admin/mark-product-packed { productName, orderIds }.
+- Delivery Partner: Assigned list shows only Packed / Out for Delivery / Delivered
+  (no Pending). Shift on/off: cannot turn on with no deliveries to do; cannot
+  turn off until all deliveries done. Cash transfer block hidden after admin verify;
+  then "Orders to deliver / No deliveries assigned" is shown.
+- Auth/CORS: Frontend may use VITE_API_URL; backend CORS allows FRONTEND_URL
+  (comma-separated for multiple origins).
+
+================================================================================

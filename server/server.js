@@ -7,17 +7,10 @@ dotenv.config();
 
 const app = express();
 
-// CORS: allow comma-separated origins (e.g. FRONTEND_URL="http://localhost:5173,https://fishcart.vercel.app")
-// or a single origin. When deploying backend, set FRONTEND_URL to https://fishcart.vercel.app (and add localhost for local dev if needed).
-const corsOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-const allowedOrigins = corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
-
+// Middleware
 app.use(
   cors({
-    origin: (origin, cb) => {
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(null, false);
-    },
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true,
   })
 );
