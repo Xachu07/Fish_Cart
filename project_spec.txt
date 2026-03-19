@@ -1,117 +1,139 @@
-Fish Cart - Project Overview
+Fish Cart - Project Specification
+
 1. PROJECT OVERVIEW
-Project Title: Fish Cart: Hyperlocal Seafood Delivery System Tech Stack: MERN (MongoDB, Express, React, Node.js) Type: Hyperlocal E-Commerce / On-Demand Logistics
+Project Title: Fish Cart - Hyperlocal Seafood Delivery System
+Tech Stack: MERN (MongoDB, Express, React, Node.js)
+Type: Hyperlocal E-Commerce / On-Demand Logistics
 
 2. PROBLEM STATEMENT
-Wastage: Local vendors buy stock blindly, often leading to spoilage and financial loss if fish remains unsold.
-
-Inconvenience: Customers must wake up early and visit crowded wet markets to get fresh catch.
-
-Processing Hassle: Cleaning and cutting fish at home is messy and difficult for many households.
-
-Uncertainty: Customers never know what fish is available until they physically reach the market.
+- Wastage: Vendors over-purchase and lose money if fish is unsold.
+- Inconvenience: Customers must visit wet markets early to get fresh stock.
+- Processing hassle: Cleaning/cutting at home is messy and time-consuming.
+- Uncertainty: Customers do not know current availability before visiting market.
 
 3. PROPOSED SOLUTION
-Daily Fresh Inventory: A system where the Admin uploads stock only after procuring it, ensuring 100% availability.
-
-Scheduled Ordering: Customers place orders during a designated time period (e.g., evening to morning).
-
-Custom Preparation: Users can choose "Cleaned & Cut" or "Whole" directly on the website.
-
-Logistics Management: A dedicated view for Delivery Partners to manage routes efficiently.
+- Daily fresh inventory managed by admin after procurement.
+- Shop open/close control to enforce order window.
+- Preparation selection per item (Whole, Cleaned, Curry Piece, Fry Cut).
+- Role-based operations for Customer, Admin, and Delivery Partner.
+- Shift-based partner workflow and COD cash-transfer verification.
 
 4. USER ROLES & PERMISSIONS
-A. User (Customer):
+A. Customer
+- Register/login.
+- View daily catch and filter by category.
+- Choose preparation option and quantity.
+- Place orders.
+- View order status.
+- Cancel order only when status is Pending.
 
-Can Register and Login.
+B. Admin
+- Secure login to admin dashboard.
+- Manage products (add/edit/delete, price/stock/image, cut options, visibility).
+- Control shop status (open/close) and default cleaning fee.
+- View orders, filter by area/status/date.
+- Assign delivery partners.
+- Update order status (except cancelled order updates are blocked).
+- Packing list operations with per-product mark packed behavior.
+- Verify partner cash transfer records.
 
-Can View the "Daily Catch" (Live Inventory).
+C. Delivery Partner
+- Login with mobile-first dashboard.
+- View assigned deliveries only when status is Packed/Out for Delivery/Delivered.
+- Reorder pending delivery sequence.
+- Update delivery status (Out for Delivery -> Delivered).
+- Shift controls:
+  - Cannot turn ON shift when no deliveries to do.
+  - Cannot turn OFF shift until all deliveries are done.
+- Mark COD amount as transferred to admin after shift completion.
 
-Can Filter by Category (Sea Fish, Shellfish, River Fish).
+5. DATABASE STRUCTURE (HIGH LEVEL)
+A. User
+- name, email, password, phone, address
+- role: user/admin/partner
+- areaOfService, approval status, block status, activity timestamp
 
-Can Select Preparation Preference (Whole vs. Cleaned & Cut).
+B. Product
+- fishName, price, stockQuantity, imageURL
+- category: Sea Fish/Shellfish/River Fish
+- status: Available/Sold Out
+- cutOptions: array (Whole (Uncleaned), Cleaned, Curry Piece, Fry Cut)
+- cleaningFee, isActive
 
-Can Place Orders & View Status (Pending -> Packed -> Out for Delivery).
+C. Order
+- userId, items, totalAmount, paymentMethod (COD/PREPAID)
+- status: Pending/Packed/Out for Delivery/Delivered/Cancelled
+- assignedPartnerId, runOrder, areaId
+- deliveryOverride fields (name/phone/address/area)
+- Item fields include fishName, qty, preparation, packed (boolean for packing-list item-level packing)
 
-B. Admin (Organization):
+D. Area
+- name, areaCode, deliveryFee
 
-Can Login (Secure Dashboard).
+E. ShopStatus
+- isOpen, cleaningFee
 
-Can Manage Daily Stock (Add Fish, Set Price, Toggle Availability).
+F. CashTransfer
+- partnerId, date (YYYY-MM-DD), amount
+- status: pending/verified
+- transferredAt, verifiedBy, verifiedAt
 
-Can Control "Shop Status" (Open/Close the ordering window).
+6. BUSINESS RULES
+- Cancelled order behavior:
+  - Customer can cancel only Pending order.
+  - Product stock is restored on cancel.
+  - Cancelled orders are excluded from partner assigned list and key admin metrics/packing queue.
+  - Cancelled order status cannot be updated further.
+- Payment display for cancelled orders:
+  - COD cancelled: show no charge message.
+  - PREPAID cancelled: show refunded amount label.
+- Packing list:
+  - "Mark Packed" marks only selected product line items in relevant orders.
+  - Order moves to Packed only when all items in that order are marked packed.
+- Partner cash transfer:
+  - Transfer amount is COD delivered for current shift/day, not historical cumulative COD.
+  - After partner marks transfer, transfer panel is hidden.
 
-Can View "Packing Lists" (Categorized by Cutting Preference).
+7. FEATURE WORKFLOW (USER JOURNEY)
+1) Admin updates stock and opens shop.
+2) Customer browses products, selects preparation/qty, places order.
+3) Admin prepares packing list and marks product items packed.
+4) Admin assigns packed orders to partner.
+5) Partner starts shift, delivers route, updates statuses.
+6) On shift completion, partner marks COD transfer.
+7) Admin verifies transfer in partner overview.
 
-Can Assign Orders to Delivery Partners.
+8. API ENDPOINTS (KEY)
+Auth:
+- POST /api/auth/register
+- POST /api/auth/login
+- GET /api/auth/me
 
-C. Delivery Partner:
+Products:
+- GET /api/products
+- POST /api/products (admin)
+- PUT /api/products/:id (admin)
+- DELETE /api/products/:id (admin)
 
-Can Login (Mobile-First View).
+Orders:
+- POST /api/orders
+- GET /api/orders/myorders
+- GET /api/orders/admin (admin)
+- PUT /api/orders/:id/status
+- PUT /api/orders/:id/cancel (customer, pending only)
+- GET /api/orders/assigned (partner; only Packed/Out for Delivery/Delivered)
+- PUT /api/orders/assigned/reorder (partner)
+- PUT /api/orders/admin/mark-product-packed (admin; item-level packing)
 
-Can View Assigned Deliveries (Map/Address).
+Cash transfer:
+- GET /api/orders/partner/cash-transfer
+- POST /api/orders/partner/cash-transferred
 
-Can Update Status (Delivered, Payment Collected).
+Admin partner ops:
+- GET /api/admin/partners/overview
+- PUT /api/admin/assign-partner
 
-5. DATABASE STRUCTURE (Schemas)
-A. User Schema:
-
-Name, Email, Password (Hashed), Phone, Address
-
-Role (String: 'user', 'admin', 'partner')
-
-B. Product Schema (Daily Inventory):
-
-FishName (String, e.g., "Sardine")
-
-Price (Number)
-
-StockQuantity (Number, e.g., 20kg)
-
-ImageURL (String)
-
-Status (String: 'Available', 'Sold Out')
-
-C. Order Schema:
-
-UserID (Link to User)
-
-Items (Array: { FishName, Qty, Preparation: 'Whole'/'Cleaned' })
-
-TotalAmount (Number)
-
-Status (String: 'Pending', 'Packed', 'Out for Delivery', 'Delivered')
-
-AssignedPartnerID (Link to Delivery Partner)
-
-CreatedAt (Timestamp)
-
-6. FEATURE WORKFLOW (The "User Journey")
-Stock Entry: Admin logs in at 4:00 PM and uploads the day's catch (e.g., 50kg Sardines).
-
-Shop Open: Admin toggles the shop to "Open."
-
-Ordering: Customer logs in at 7:00 PM, selects "Sardine (Cleaned & Cut)," and places an order.
-
-Processing: At 6:00 AM, Admin generates the "Packing List" and hands it to the cleaning staff.
-
-Assignment: Admin marks the order as "Packed" and assigns it to a Delivery Partner.
-
-Delivery: Partner sees the address on their phone, delivers the fish, and marks it "Delivered."
-
-7. API ENDPOINTS (The URL Rules)
-POST /api/auth/register -> Create new user account.
-
-POST /api/auth/login -> Login (Admin/User/Partner).
-
-GET /api/products -> Get list of today's available fish.
-
-POST /api/products -> Admin adds new stock.
-
-POST /api/orders -> Customer places a new order.
-
-GET /api/orders/myorders -> Customer views their history.
-
-GET /api/orders/admin -> Admin views all incoming orders.
-
-PUT /api/orders/:id/status -> Partner/Admin updates status (e.g., to "Delivered").
+9. DEPLOYMENT & CORS NOTES
+- Frontend should use VITE_API_URL in production.
+- Backend CORS uses FRONTEND_URL and can allow comma-separated origins.
+- For Vercel frontend, set FRONTEND_URL=https://fishcart.vercel.app on backend.
