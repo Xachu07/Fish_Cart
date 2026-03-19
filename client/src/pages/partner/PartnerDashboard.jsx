@@ -153,6 +153,17 @@ export default function PartnerDashboard() {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
+  const isSameLocalDay = (a, b) => {
+    if (!a || !b) return false;
+    const da = new Date(a);
+    const db = new Date(b);
+    return (
+      da.getFullYear() === db.getFullYear() &&
+      da.getMonth() === db.getMonth() &&
+      da.getDate() === db.getDate()
+    );
+  };
+
   const fetchCashTransfer = async () => {
     try {
       const res = await api.get('/orders/partner/cash-transfer', { params: { date: todayDateStr() } });
@@ -166,12 +177,18 @@ export default function PartnerDashboard() {
     fetchAssignedOrders();
   }, []);
 
+  const deliveredTodayCodTotal = useMemo(() => {
+    const now = new Date();
+    return orders
+      .filter((o) => o.status === 'Delivered' && o.paymentMethod !== 'PREPAID' && isSameLocalDay(o.updatedAt, now))
+      .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  }, [orders]);
+
   useEffect(() => {
     const done = orders.length > 0 && orders.every((o) => o.status === 'Delivered');
-    const toSettle = orders.filter((o) => o.status === 'Delivered' && o.paymentMethod !== 'PREPAID').reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
-    if (done && orders.length > 0 && toSettle > 0) fetchCashTransfer();
+    if (done && orders.length > 0 && deliveredTodayCodTotal > 0) fetchCashTransfer();
     else setCashTransfer(null);
-  }, [orders]);
+  }, [orders, deliveredTodayCodTotal]);
 
   // Use API order (runOrder); pending = not yet delivered
   const pendingOrders = useMemo(() => orders.filter((o) => o.status !== 'Delivered'), [orders]);
@@ -234,6 +251,8 @@ export default function PartnerDashboard() {
     try {
       await api.post('/orders/partner/cash-transferred', { date: todayDateStr(), amount: cashToSettle });
       toast.success('Marked as transferred. Admin will verify.');
+      // Hide the transfer panel immediately after marking.
+      setCashTransfer({ status: 'pending' });
       await fetchCashTransfer();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to mark as transferred');
@@ -250,13 +269,7 @@ export default function PartnerDashboard() {
         .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0),
     [orders]
   );
-  const cashToSettle = useMemo(
-    () =>
-      orders
-        .filter((o) => o.status === 'Delivered' && (o.paymentMethod !== 'PREPAID'))
-        .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0),
-    [orders]
-  );
+  const cashToSettle = deliveredTodayCodTotal;
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -551,8 +564,8 @@ export default function PartnerDashboard() {
         </section>
       )}
 
-      {/* 4. End of Shift – Total amount to transfer (hide once admin has verified; then partner sees "Orders to deliver" / "No deliveries assigned") */}
-      {allDelivered && orders.length > 0 && cashToSettle > 0 && cashTransfer?.status !== 'verified' && (
+      {/* 4. End of Shift – Total amount to transfer (hide once transfer is marked/exists) */}
+      {allDelivered && orders.length > 0 && cashToSettle > 0 && !cashTransfer && (
         <section
           style={{
             background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)',
@@ -578,30 +591,24 @@ export default function PartnerDashboard() {
           >
             ₹{cashToSettle.toLocaleString('en-IN')}
           </div>
-          {cashTransfer ? (
-            <div style={{ fontSize: 14, opacity: 0.95 }}>
-              {cashTransfer.status === 'verified' ? 'Verified by admin' : 'Pending verification by admin'}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={markAsTransferred}
-              disabled={markingTransferred || cashToSettle <= 0}
-              style={{
-                padding: '12px 24px',
-                background: 'rgba(255,255,255,0.95)',
-                color: '#166534',
-                border: 'none',
-                borderRadius: 12,
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: markingTransferred || cashToSettle <= 0 ? 'not-allowed' : 'pointer',
-                opacity: markingTransferred || cashToSettle <= 0 ? 0.8 : 1,
-              }}
-            >
-              {markingTransferred ? '…' : 'Mark as Transferred'}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={markAsTransferred}
+            disabled={markingTransferred || cashToSettle <= 0}
+            style={{
+              padding: '12px 24px',
+              background: 'rgba(255,255,255,0.95)',
+              color: '#166534',
+              border: 'none',
+              borderRadius: 12,
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: markingTransferred || cashToSettle <= 0 ? 'not-allowed' : 'pointer',
+              opacity: markingTransferred || cashToSettle <= 0 ? 0.8 : 1,
+            }}
+          >
+            {markingTransferred ? '…' : 'Mark as Transferred'}
+          </button>
         </section>
       )}
 

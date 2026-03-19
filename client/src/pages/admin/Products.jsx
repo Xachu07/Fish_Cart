@@ -4,6 +4,16 @@ import { toast } from 'react-hot-toast';
 
 const RUPEES = '\u20B9';
 
+const normalizeCutOption = (opt) => {
+  if (!opt || typeof opt !== 'string') return opt;
+  const s = opt.trim();
+  if (s === 'Cleaned (Whole but gutted)') return 'Cleaned';
+  if (s === 'Fry Cut (Sliced)') return 'Fry Cut';
+  // Older data may store schema-style values
+  if (s === 'Whole') return 'Whole (Uncleaned)';
+  return s;
+};
+
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +72,9 @@ const Products = () => {
         ...formData,
         price: parseFloat(formData.price) || 0,
         stockQuantity: parseFloat(formData.stockQuantity) || 0,
-        cutOptions: Array.isArray(formData.cutOptions) ? formData.cutOptions : [],
+        cutOptions: Array.isArray(formData.cutOptions)
+          ? Array.from(new Set(formData.cutOptions.map(normalizeCutOption)))
+          : [],
         cleaningFee: Math.max(0, parseFloat(formData.cleaningFee) || 0),
         isActive: !!formData.isActive,
       };
@@ -111,6 +123,7 @@ const Products = () => {
 
   const handleEdit = (product) => {
     setEditingProduct(product);
+    const normalizedCuts = Array.from(new Set((product.cutOptions || []).map(normalizeCutOption)));
     setFormData({
       fishName: product.fishName,
       price: product.price.toString(),
@@ -118,7 +131,7 @@ const Products = () => {
       imageURL: product.imageURL || '',
       category: product.category,
       status: product.status,
-      cutOptions: product.cutOptions || [],
+      cutOptions: normalizedCuts,
       cleaningFee: product.cleaningFee != null ? String(product.cleaningFee) : '0',
       isActive: typeof product.isActive === 'boolean' ? product.isActive : true,
     });
@@ -323,7 +336,7 @@ const Products = () => {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {product.cutOptions.map((c) => (
                       <span key={c} style={{ background: '#f1f5f9', padding: '6px 8px', borderRadius: 6, fontSize: 12, color: '#0f1724' }}>
-                        {c}
+                        {normalizeCutOption(c)}
                       </span>
                     ))}
                   </div>
@@ -450,10 +463,12 @@ const Products = () => {
                             type="checkbox"
                             checked={checked}
                             onChange={(e) => {
-                              const next = new Set(formData.cutOptions || []);
-                              if (e.target.checked) next.add(opt);
-                              else next.delete(opt);
-                              setFormData({ ...formData, cutOptions: Array.from(next) });
+                              setFormData((prev) => {
+                                const next = new Set(prev.cutOptions || []);
+                                if (e.target.checked) next.add(opt);
+                                else next.delete(opt);
+                                return { ...prev, cutOptions: Array.from(next) };
+                              });
                             }}
                           />
                           <span style={{ fontSize: 14 }}>{opt}</span>
